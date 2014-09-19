@@ -147,20 +147,17 @@ html.apifs-pseudo-fullscreen > body {
 		bottom: 40px;
 		}
 
-
 	.apifs-wrapper .apifs-button,
 	.apifs-wrapper .apifs-button.apifs-button-theme-white {
 		background-color: rgba(180, 180, 180, 0.7)
 		}
 
 	.apifs-wrapper .apifs-button:hover,
-	.apifs-wrapper .apifs-button:active,
+	.apifs-wrapper .apifs-button:focus,
 	.apifs-wrapper .apifs-button.apifs-button-theme-white:hover,
-	.apifs-wrapper .apifs-button.apifs-button-theme-white:active {
+	.apifs-wrapper .apifs-button.apifs-button-theme-white:focus {
 		background-color: rgba(140, 140, 140, 0.9);
 		}
-
-
 
 	.apifs-wrapper .apifs-button,
 	.apifs-wrapper .apifs-button.apifs-button-theme-gray {
@@ -168,13 +165,11 @@ html.apifs-pseudo-fullscreen > body {
 		}
 
 	.apifs-wrapper .apifs-button:hover,
-	.apifs-wrapper .apifs-button:active,
+	.apifs-wrapper .apifs-button:focus,
 	.apifs-wrapper .apifs-button.apifs-button-theme-gray:hover,
-	.apifs-wrapper .apifs-button.apifs-button-theme-gray:active {
+	.apifs-wrapper .apifs-button.apifs-button-theme-gray:focus {
 		background-color: rgba(255, 255, 255, 1.0);
 		}
-
-
 
 	.apifs-wrapper .apifs-button,
 	.apifs-wrapper .apifs-button.apifs-button-theme-black {
@@ -182,13 +177,11 @@ html.apifs-pseudo-fullscreen > body {
 		}
 
 	.apifs-wrapper .apifs-button:hover,
-	.apifs-wrapper .apifs-button:active,
+	.apifs-wrapper .apifs-button:focus,
 	.apifs-wrapper .apifs-button.apifs-button-theme-black:hover,
-	.apifs-wrapper .apifs-button.apifs-button-theme-black:active {
+	.apifs-wrapper .apifs-button.apifs-button-theme-black:focus {
 		background-color: rgba(220, 220, 220, 0.9);
 		}
-
-
 
 	.apifs-wrapper .apifs-buttons > .apifs-close-button, /* default theme */
 	.apifs-wrapper .apifs-buttons > .apifs-close-button.apifs-button-theme-white {
@@ -204,8 +197,6 @@ html.apifs-pseudo-fullscreen > body {
 		/* black */ background-position:   18px 18px;
 		}
 
-
-
 	.apifs-wrapper .apifs-buttons > .apifs-next-button, /* default theme */
 	.apifs-wrapper .apifs-buttons > .apifs-next-button.apifs-button-theme-white {
 		/* white */ background-position: -100px -44px;
@@ -218,8 +209,6 @@ html.apifs-pseudo-fullscreen > body {
 	.apifs-wrapper .apifs-buttons > .apifs-next-button.apifs-button-theme-black {
 		/* black */ background-position:   20px -44px;
 		}
-
-
 
 	.apifs-wrapper .apifs-buttons > .apifs-previous-button,
 	.apifs-wrapper .apifs-buttons > .apifs-previous-button.apifs-button-theme-white {
@@ -237,30 +226,50 @@ html.apifs-pseudo-fullscreen > body {
 
 @media screen and (max-width: 1024px) {
 
-	.apifs-wrapper .apifs-button-group {
+	.apifs-wrapper .apifs-buttons-left-top,
+	.apifs-wrapper .apifs-buttons-left-center,
+	.apifs-wrapper .apifs-buttons-left-bottom {
+		left: 30px;
+		}
+
+	.apifs-wrapper .apifs-buttons-right-top,
+	.apifs-wrapper .apifs-buttons-right-center,
+	.apifs-wrapper .apifs-buttons-right-bottom {
 		right: 30px;
 		}
 
-	.apifs-wrapper .apifs-button-group.apifs-button-group-top {
+	.apifs-wrapper .apifs-buttons-left-top,
+	.apifs-wrapper .apifs-buttons-right-top {
 		top: 30px;
 		}
 
-	.apifs-wrapper .apifs-button-group.apifs-button-group-bottom {
+	.apifs-wrapper .apifs-buttons-left-bottom,
+	.apifs-wrapper .apifs-buttons-right-bottom {
 		bottom: 30px;
 		}
 }
 
 @media screen and (max-width: 800px) {
 
-	.apifs-wrapper .apifs-button-group {
+	.apifs-wrapper .apifs-buttons-left-top,
+	.apifs-wrapper .apifs-buttons-left-center,
+	.apifs-wrapper .apifs-buttons-left-bottom {
+		left: 20px;
+		}
+
+	.apifs-wrapper .apifs-buttons-right-top,
+	.apifs-wrapper .apifs-buttons-right-center,
+	.apifs-wrapper .apifs-buttons-right-bottom {
 		right: 20px;
 		}
 
-	.apifs-wrapper .apifs-button-group.apifs-button-group-top {
+	.apifs-wrapper .apifs-buttons-left-top,
+	.apifs-wrapper .apifs-buttons-right-top {
 		top: 20px;
 		}
 
-	.apifs-wrapper .apifs-button-group.apifs-button-group-bottom {
+	.apifs-wrapper .apifs-buttons-left-bottom,
+	.apifs-wrapper .apifs-buttons-right-bottom {
 		bottom: 20px;
 		}
 }

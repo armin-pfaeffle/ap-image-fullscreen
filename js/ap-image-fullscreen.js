@@ -7,6 +7,18 @@
 * http://armin-pfaeffle.de/licenses/mit
 */
 
+
+/*
+
+TODO/IDEAS:
+
+- individual colors for each "page" -> read data-color="#fff" attribute
+- individual zoom settings for each page
+
+*/
+
+
+
 ;(function($) {
 
 	var datakey = '__apifs__';
@@ -98,19 +110,11 @@
 		_init: function() {
 			var self = this;
 
+			this.currentIndex = 0;
+
 			this._addContainer();
 			this._obtainAndAppendImages();
 			this._addButtons();
-			this.currentIndex = 0;
-
-			// if (this.settings.lazyLoad != 'open' && this.settings.lazyLoad != 'visible') {
-				this.$images.children().each(function() {
-					$(this).apImageZoom({
-						imageUrl: $(this).data('imageUrl'),
-						loadingAnimation: 'throbber'
-					});
-				});
-			// }
 		},
 
 		/**
@@ -139,6 +143,11 @@
 						// Add references for better access
 						$(this).data(datakey + '.item', $item);
 						$item.data('target', $(this));
+
+						// Load image
+						if (self.settings.lazyLoad === false || self.settings.lazyLoad == 'instant') {
+							self._loadImage($item);
+						}
 					}
 				}
 			});
@@ -169,6 +178,7 @@
 			if (imageUrl) {
 				var $item = $('<li></li>');
 				$item.data('imageUrl', imageUrl);
+				$item.data('loaded', false);
 
 				// Prepare item insert position
 				var childrenCount = this.$images.children().length;
@@ -183,6 +193,26 @@
 				return $item;
 			}
 			return undefined;
+		},
+
+		/**
+		 *
+		 */
+		_loadImage: function($item) {
+			console.debug('_loadImage');
+			var self = this;
+			if ($item && $item.data('loaded') === false) {
+				$item.apImageZoom({
+					imageUrl: $item.data('imageUrl'),
+					loadingAnimation: 'throbber',
+					onSwipeRight: function() {
+						self.previous();
+					},
+					onSwipeLeft: function() {
+						self.next();
+					},
+				});
+			}
 		},
 
 		/**
@@ -276,13 +306,22 @@
 		 *
 		 */
 		_show: function(index, animate) {
+			// Make index valid
 			var index = Math.min(Math.max(index, 0), this.$images.children().length);
+			this.currentIndex = index;
+
+			// Load image if it should be loaded when getting visible
+			if (this.settings.lazyLoad == 'visible') {
+				this._loadImage(this.$images.children(':eq(' + index + ')'));
+			}
+
+			// Move images container to the right position, so it shows image with given index
 			var left = (-1 * index * 100) + '%';
 			if (animate) {
 				this.$images.animate({left: left});
 			}
 			else {
-				this.$image.css('left', left);
+				this.$images.css('left', left);
 			}
 		},
 
@@ -340,7 +379,15 @@
 		/**
 		 *
 		 */
-		open: function() {
+		open: function(index) {
+			var self = this;
+
+			if (this.settings.lazyLoad !== false && this.settings.lazyLoad != 'instant' && this.settings.lazyLoad !== 'visible') {
+				this.$images.children().each(function() {
+					self._loadImage($(this));
+				});
+			}
+
 			if (!this.settings.disableScreenfull && typeof screenfull == 'object' && screenfull.enabled) {
 				$('html').addClass(cssPrefix + 'screenfull');
 				var element = this.$fullscreenElement[0];
@@ -349,6 +396,9 @@
 			else {
 				$('html').addClass(cssPrefix + 'pseudo-fullscreen');
 			}
+
+			index = index || 0;
+			this._show(index, false);
 		},
 
 		/**
@@ -369,8 +419,7 @@
 		 */
 		next: function() {
 			if (this.currentIndex < this.$images.children().length - 1) {
-				this.currentIndex++;
-				this._show(this.currentIndex, true);
+				this._show(this.currentIndex + 1, true);
 			}
 		},
 
@@ -379,8 +428,7 @@
 		 */
 		previous: function() {
 			if (this.currentIndex > 0) {
-				this.currentIndex--;
-				this._show(this.currentIndex, true);
+				this._show(this.currentIndex - 1, true);
 			}
 		},
 
@@ -483,8 +531,8 @@
 	ApImageFullscreen.defaultSettings = {
 		autoReassign: true,
 		autoOpen: false,
-		lazyLoad: 'open',				// Options: false, 'open', 'visible'
-		buttons: {
+		lazyLoad: 'open',				// Options: false, 'instant', 'open', 'visible'
+		buttons: {						// Options for position: left|right, top|center|bottom
 			close:    { visible: true, position: 'right, top', theme: 'white' },
 			next:     { visible: true, position: 'right, bottom', theme: 'white' },
 			previous: { visible: true, position: 'right, bottom', theme: 'white' }

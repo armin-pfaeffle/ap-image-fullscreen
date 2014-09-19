@@ -26,16 +26,18 @@
 
 		<ul class="gallery clearfix">
 			<li><a href="images/pride-w'14-3_large.jpg" class="fullscreen-image"><img src="images/pride-w'14-3.jpg" width="325" height="425" alt="dirndl" /></a></li>
-			<li><img src="images/pride-w'14-6.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
+			<li><img src="images/pride-w'14-6_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
 			<li><a href="images/pride-w'14-8_large.jpg" class="fullscreen-image"><img src="images/pride-w'14-8.jpg" width="325" height="425" alt="dirndl" /></a></li>
-			<li><img src="images/pride-w'14-9.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
+			<li><img src="images/pride-w'14-9_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
 		</ul>
 
 		<script type="text/javascript">
 
 			console.debug(
 				$('.gallery .fullscreen-image').apImageFullscreen({
-					autoOpen: true,
+					autoOpen: false,
+					// lazyLoad: 'open',
+					lazyLoad: 'visible',
 					disableScreenfull: true
 				})
 			);
