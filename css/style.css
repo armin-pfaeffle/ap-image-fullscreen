@@ -1,0 +1,24 @@
+.clearfix::after {
+	content: "";
+	clear: both;
+	display: block;
+	height: 0;
+	visibility: hidden;
+	width: 0;
+	line-height: 0;
+	font-size: 0;
+	}
+
+
+.gallery {
+	}
+
+	.gallery > li {
+		float: left;
+		}
+
+		.gallery > li > a {
+			}
+
+			.gallery > li > a > img {
+				}

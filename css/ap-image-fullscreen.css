@@ -1,0 +1,266 @@
+.apifs-clearfix::after {
+	content: "";
+	clear: both;
+	display: block;
+	height: 0;
+	visibility: hidden;
+	width: 0;
+	line-height: 0;
+	font-size: 0;
+	}
+
+html.apifs-pseudo-fullscreen,
+html.apifs-pseudo-fullscreen > body {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	}
+
+.apifs-container {
+	visibility: hidden;
+	position: fixed;
+	z-index: 9999;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: #ecc;
+	}
+
+.apifs-container,
+.apifs-container * {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	    -ms-user-select: none;
+	     -o-user-select: none;
+	        user-select: none;
+	}
+
+.apifs-screenfull .apifs-container {
+	visibility: visible;
+	width: 0;
+	height: 0;
+	}
+
+.apifs-pseudo-fullscreen .apifs-container {
+	visibility: visible;
+	}
+
+	.apifs-container .apifs-fullscreen-element {
+		width: 100%;
+		height: 100%;
+		}
+
+	.apifs-container .apifs-wrapper {
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		position: relative;
+		}
+
+	.apifs-container .apifs-images {
+		width: 100%;
+		height: 100%;
+		white-space: nowrap;
+		position: relative;
+		z-index: 1;
+		}
+
+		.apifs-container .apifs-images > li {
+			position: relative;
+			display: inline-block;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			background-color: #eee;
+			}
+
+		.apifs-container .apifs-images > li > .apiz-wrapper {
+			width: 100%;
+			height: 100%;
+			}
+
+	.apifs-wrapper .apifs-buttons {
+		position: absolute;
+		z-index: 10;
+		-webkit-transition: top 0.3s, right 0.3s;
+		   -moz-transition: top 0.3s, right 0.3s;
+		    -ms-transition: top 0.3s, right 0.3s;
+		     -o-transition: top 0.3s, right 0.3s;
+		        transition: top 0.3s, right 0.3s;
+		}
+
+		.apifs-wrapper .apifs-buttons > .apifs-button {
+			display: inline-block;
+			width: 60px;
+			height: 60px;
+			border-radius: 40px;
+			text-indent: -9999px;
+			background: url('../images/apifs-controls.png') no-repeat;
+			background-size: 150px 150px;
+			overflow: hidden;
+			-webkit-transition: background-color 0.3s;
+			   -moz-transition: background-color 0.3s;
+			    -ms-transition: background-color 0.3s;
+			     -o-transition: background-color 0.3s;
+			        transition: background-color 0.3s;
+			}
+
+	.apifs-wrapper .apifs-buttons-left-top,
+	.apifs-wrapper .apifs-buttons-left-center,
+	.apifs-wrapper .apifs-buttons-left-bottom {
+		left: 40px;
+		}
+
+		.apifs-wrapper .apifs-buttons-left-top .apifs-button,
+		.apifs-wrapper .apifs-buttons-left-center .apifs-button,
+		.apifs-wrapper .apifs-buttons-left-bottom .apifs-button {
+			margin-right: 10px;
+			}
+
+	.apifs-wrapper .apifs-buttons-right-top,
+	.apifs-wrapper .apifs-buttons-right-center,
+	.apifs-wrapper .apifs-buttons-right-bottom {
+		right: 40px;
+		}
+
+		.apifs-wrapper .apifs-buttons-right-top .apifs-button,
+		.apifs-wrapper .apifs-buttons-right-center .apifs-button,
+		.apifs-wrapper .apifs-buttons-right-bottom .apifs-button {
+			margin-left: 10px;
+			}
+
+	.apifs-wrapper .apifs-buttons-left-top,
+	.apifs-wrapper .apifs-buttons-right-top {
+		top: 40px;
+		}
+
+	.apifs-wrapper .apifs-buttons-left-center,
+	.apifs-wrapper .apifs-buttons-right-center {
+		top: 50%;
+		margin-top: -30px;
+		}
+
+	.apifs-wrapper .apifs-buttons-left-bottom,
+	.apifs-wrapper .apifs-buttons-right-bottom {
+		bottom: 40px;
+		}
+
+
+	.apifs-wrapper .apifs-button,
+	.apifs-wrapper .apifs-button.apifs-button-theme-white {
+		background-color: rgba(180, 180, 180, 0.7)
+		}
+
+	.apifs-wrapper .apifs-button:hover,
+	.apifs-wrapper .apifs-button:active,
+	.apifs-wrapper .apifs-button.apifs-button-theme-white:hover,
+	.apifs-wrapper .apifs-button.apifs-button-theme-white:active {
+		background-color: rgba(140, 140, 140, 0.9);
+		}
+
+
+
+	.apifs-wrapper .apifs-button,
+	.apifs-wrapper .apifs-button.apifs-button-theme-gray {
+		background-color: rgba(230, 230, 230, 0.7)
+		}
+
+	.apifs-wrapper .apifs-button:hover,
+	.apifs-wrapper .apifs-button:active,
+	.apifs-wrapper .apifs-button.apifs-button-theme-gray:hover,
+	.apifs-wrapper .apifs-button.apifs-button-theme-gray:active {
+		background-color: rgba(255, 255, 255, 1.0);
+		}
+
+
+
+	.apifs-wrapper .apifs-button,
+	.apifs-wrapper .apifs-button.apifs-button-theme-black {
+		background-color: rgba(190, 190, 190, 0.7)
+		}
+
+	.apifs-wrapper .apifs-button:hover,
+	.apifs-wrapper .apifs-button:active,
+	.apifs-wrapper .apifs-button.apifs-button-theme-black:hover,
+	.apifs-wrapper .apifs-button.apifs-button-theme-black:active {
+		background-color: rgba(220, 220, 220, 0.9);
+		}
+
+
+
+	.apifs-wrapper .apifs-buttons > .apifs-close-button, /* default theme */
+	.apifs-wrapper .apifs-buttons > .apifs-close-button.apifs-button-theme-white {
+		/* white */ background-position: -102px 18px;
+		}
+
+	.apifs-wrapper .apifs-buttons > .apifs-close-button.apifs-button-theme-gray {
+		/* gray  */ background-position:  -42px 18px;
+		}
+
+	.apifs-wrapper .apifs-buttons > .apifs-close-button,
+	.apifs-wrapper .apifs-buttons > .apifs-close-button.apifs-button-theme-black {
+		/* black */ background-position:   18px 18px;
+		}
+
+
+
+	.apifs-wrapper .apifs-buttons > .apifs-next-button, /* default theme */
+	.apifs-wrapper .apifs-buttons > .apifs-next-button.apifs-button-theme-white {
+		/* white */ background-position: -100px -44px;
+		}
+
+	.apifs-wrapper .apifs-buttons > .apifs-next-button.apifs-button-theme-gray {
+		/* gray  */ background-position:  -40px -44px;
+		}
+
+	.apifs-wrapper .apifs-buttons > .apifs-next-button.apifs-button-theme-black {
+		/* black */ background-position:   20px -44px;
+		}
+
+
+
+	.apifs-wrapper .apifs-buttons > .apifs-previous-button,
+	.apifs-wrapper .apifs-buttons > .apifs-previous-button.apifs-button-theme-white {
+		/* white */ background-position: -103px -104px;
+		}
+
+	.apifs-wrapper .apifs-buttons > .apifs-previous-button.apifs-button-theme-gray {
+		/* gray  */ background-position:  -43px -104px;
+		}
+
+	.apifs-wrapper .apifs-buttons > .apifs-previous-button.apifs-button-theme-black {
+		/* black */ background-position:   17px -104px;
+		}
+
+
+@media screen and (max-width: 1024px) {
+
+	.apifs-wrapper .apifs-button-group {
+		right: 30px;
+		}
+
+	.apifs-wrapper .apifs-button-group.apifs-button-group-top {
+		top: 30px;
+		}
+
+	.apifs-wrapper .apifs-button-group.apifs-button-group-bottom {
+		bottom: 30px;
+		}
+}
+
+@media screen and (max-width: 800px) {
+
+	.apifs-wrapper .apifs-button-group {
+		right: 20px;
+		}
+
+	.apifs-wrapper .apifs-button-group.apifs-button-group-top {
+		top: 20px;
+		}
+
+	.apifs-wrapper .apifs-button-group.apifs-button-group-bottom {
+		bottom: 20px;
+		}
+}

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0;" />
+		<meta name="author" content="Armin Pfäffle" />
+		<meta name="robots" content="index, follow" />
+
+		<title>ap-image-fullscreen</title>
+		<link rel="stylesheet" href="css/reset.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="css/ap-image-zoom.min.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="css/ap-image-fullscreen.css" type="text/css" media="screen" />
+
+		 <script src="js/jquery.min.js"></script>
+		 <script src="js/hammer.min.js"></script>
+		 <script src="js/jquery.mousewheel.min.js"></script>
+		 <script src="js/screenfull.js"></script>
+		 <script src="js/ap-image-zoom.js"></script>
+		 <script src="js/ap-image-fullscreen.js"></script>
+		<!--[if lt IE 9]><script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	</head>
+
+	<body>
+		<input type="button" value="Open" id="open" />
+
+		<ul class="gallery clearfix">
+			<li><a href="images/pride-w'14-3_large.jpg" class="fullscreen-image"><img src="images/pride-w'14-3.jpg" width="325" height="425" alt="dirndl" /></a></li>
+			<li><img src="images/pride-w'14-6.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
+			<li><a href="images/pride-w'14-8_large.jpg" class="fullscreen-image"><img src="images/pride-w'14-8.jpg" width="325" height="425" alt="dirndl" /></a></li>
+			<li><img src="images/pride-w'14-9.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
+		</ul>
+
+		<script type="text/javascript">
+
+			console.debug(
+				$('.gallery .fullscreen-image').apImageFullscreen({
+					autoOpen: true,
+					disableScreenfull: true
+				})
+			);
+
+			$('#open').click(function() {
+				$('.gallery .fullscreen-image:first').apImageFullscreen('open');
+			});
+
+			// console.debug('--------------------');
+			// console.debug(
+			// 	$('.gallery a').apImageFullscreen({
+			// 	})
+			// );
+
+				/*
+				$('#link').click(function() {
+					if (screenfull.enabled) {
+						var targetImageUrl = $(this).attr('href');
+						var element = $('<div class="fullscreen-container"><div class="wrapper"><img style="display: none;" /></div></div>');
+						$('body').append(element);
+
+						var targetImage = element.find('img:first');
+						targetImage.on('load', function() {
+							console.debug(this.width + ', ' + this.height);
+
+							targetImage.attr({
+								width: this.width,
+								height: this.height
+							});
+
+							var w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+							var h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+
+							var x = Math.min(this.width, w);
+							var y = Math.min(this.height, h);
+
+							if (x - w < y - h) {
+								targetImage.css({
+									width: '80%',
+									height: 'auto'
+								});
+							} else {
+								targetImage.css({
+									width: 'auto',
+									height: '80%'
+								});
+							}
+
+
+
+							targetImage.attr('width', Math.min(this.width, w));
+							targetImage.attr('height', Math.min(this.height, h));
+							targetImage.fadeIn();
+						});
+						targetImage.attr('src', targetImageUrl);
+
+
+						$('body').append(element);
+						// var image = $(this).children('img:first')[0];
+						screenfull.request(element[0]);
+						return false;
+					}
+				});
+*/
+			// });
+		</script>
+	</body>
+</html>
