@@ -14,6 +14,21 @@ TODO/IDEAS:
 
 - individual colors for each "page" -> read data-color="#fff" attribute
 - individual zoom settings for each page
+- SPACE key -> toggle zoom
+- ESCAPCE key -> close
+- LEFT key -> previous
+- RIGHT key -> next
+- PAGE UP -> next
+- PAGE DOWN -> previous
+- ENTER -> next
+- double tap -> zoom
+- New button: download image/open image
+- POS1 -> first image
+- END -> last image
+
+BUGS:
+
+- No instant fullscreen (screenfull) opening possible right know -> why?
 
 */
 
@@ -144,7 +159,7 @@ TODO/IDEAS:
 						$(this).data(datakey + '.item', $item);
 						$item.data('target', $(this));
 
-						// Load image
+						// Load image if necessary
 						if (self.settings.lazyLoad === false || self.settings.lazyLoad == 'instant') {
 							self._loadImage($item);
 						}
@@ -198,19 +213,22 @@ TODO/IDEAS:
 		/**
 		 *
 		 */
-		_loadImage: function($item) {
-			console.debug('_loadImage');
+		_loadImage: function($items) {
 			var self = this;
-			if ($item && $item.data('loaded') === false) {
-				$item.apImageZoom({
-					imageUrl: $item.data('imageUrl'),
-					loadingAnimation: 'throbber',
-					onSwipeRight: function() {
-						self.previous();
-					},
-					onSwipeLeft: function() {
-						self.next();
-					},
+			if ($items && $items.length > 0) {
+				$items.each(function() {
+					if ($(this).data('loaded') === false) {
+						$(this).apImageZoom({
+							imageUrl: $(this).data('imageUrl'),
+							loadingAnimation: 'throbber',
+							onSwipeRight: function() {
+								self.previous();
+							},
+							onSwipeLeft: function() {
+								self.next();
+							},
+						});
+					}
 				});
 			}
 		},
@@ -226,13 +244,14 @@ TODO/IDEAS:
 			// The correct order of the button names is important because of later usage of "append"!
 			var buttonNames = ['previous', 'next', 'close'];
 			for (index in buttonNames) {
-				// First we have to check if there is a correct position for this button before we add it...
 				var buttonName = buttonNames[index];
 				var options;
+
+				// First we have to check if there is a correct position for this button before we add it...
 				if (typeof this.settings.buttons == 'object' && (options = this.settings.buttons[buttonName]) != undefined) {
 					var position = options.position.split(',').map(function(s) { return s.trim().toLowerCase(); });
 					if (['left', 'right'].indexOf(position[0]) > -1 && ['top', 'center', 'bottom'].indexOf(position[1]) > -1) {
-						// Create button and add it to the correct container
+						// ... then we can create the button and add it to the correct container
 						var $button = $('<a href="#{0}">{1}</a>'.format(buttonName, buttonName.ucfirst()))
 								.addClass('{0}button'.format(cssPrefix))
 								.addClass('{0}{1}-button'.format(cssPrefix, buttonName));
@@ -243,9 +262,12 @@ TODO/IDEAS:
 						// Assign button click: buttonName == name of called method
 						$button.data('clickMethodName', buttonName);
 						$button.click(function() {
-							var f = self[$(this).data('clickMethodName')];
-							if (typeof f == 'function') {
-								f.apply(self);
+							if (!$(this).hasClass(cssPrefix + 'button-disabled')) {
+								console.debug('click');
+								var f = self[$(this).data('clickMethodName')];
+								if (typeof f == 'function') {
+									f.apply(self);
+								}
 							}
 							return false;
 						});
@@ -256,6 +278,10 @@ TODO/IDEAS:
 						if (typeof options.theme == 'string') {
 							$button.addClass('{0}button-theme-{1}'.format(cssPrefix, options.theme));
 						}
+						else {
+							$button.addClass('{0}button-theme-{1}'.format(cssPrefix, self.settings.defaultTheme));
+						}
+
 					}
 				}
 			}
@@ -282,6 +308,19 @@ TODO/IDEAS:
 		 *
 		 */
 		_updateButtons: function() {
+			var disabledButtonClassName = cssPrefix + 'button-disabled';
+			if (this.currentIndex == 0) {
+				this.$previousButton.addClass(disabledButtonClassName);
+			}
+			else if (this.$previousButton.hasClass(disabledButtonClassName)) {
+				this.$previousButton.removeClass(disabledButtonClassName);
+			}
+			if (this.currentIndex == this.$images.children().length - 1) {
+				this.$nextButton.addClass(disabledButtonClassName);
+			}
+			else if (this.$nextButton.hasClass(disabledButtonClassName)) {
+				this.$nextButton.removeClass(disabledButtonClassName);
+			}
 			// this.$closeButton.addClass(cssPrefix + 'button-top');
 			// this.$previousButton.addClass(cssPrefix + 'button-bottom');
 			// this.$nextButton.addClass(cssPrefix + 'button-bottom');
@@ -323,6 +362,7 @@ TODO/IDEAS:
 			else {
 				this.$images.css('left', left);
 			}
+			this._updateButtons();
 		},
 
 		/**
@@ -382,10 +422,9 @@ TODO/IDEAS:
 		open: function(index) {
 			var self = this;
 
+			// Load all images if necessary
 			if (this.settings.lazyLoad !== false && this.settings.lazyLoad != 'instant' && this.settings.lazyLoad !== 'visible') {
-				this.$images.children().each(function() {
-					self._loadImage($(this));
-				});
+				self._loadImage(this.$images.children());
 			}
 
 			if (!this.settings.disableScreenfull && typeof screenfull == 'object' && screenfull.enabled) {
@@ -532,10 +571,11 @@ TODO/IDEAS:
 		autoReassign: true,
 		autoOpen: false,
 		lazyLoad: 'open',				// Options: false, 'instant', 'open', 'visible'
+		defaultTheme: 'dark',
 		buttons: {						// Options for position: left|right, top|center|bottom
-			close:    { visible: true, position: 'right, top', theme: 'white' },
-			next:     { visible: true, position: 'right, bottom', theme: 'white' },
-			previous: { visible: true, position: 'right, bottom', theme: 'white' }
+			close:    { visible: true, position: 'right, top', theme: undefined },
+			next:     { visible: true, position: 'right, bottom', theme: undefined },
+			previous: { visible: true, position: 'right, bottom', theme: 'undefined' }
 		},
 
 		disableScreenfull: false

@@ -11,6 +11,7 @@
 		<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="css/ap-image-zoom.min.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="css/ap-image-fullscreen.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="css/ap-image-fullscreen-themes.css" type="text/css" media="screen" />
 
 		 <script src="js/jquery.min.js"></script>
 		 <script src="js/hammer.min.js"></script>
@@ -33,76 +34,19 @@
 
 		<script type="text/javascript">
 
-			console.debug(
+			$(document).ready(function() {
 				$('.gallery .fullscreen-image').apImageFullscreen({
-					autoOpen: false,
+					autoOpen: true, // Only works with disableScreenfull: true, because of browsers do not allow programmatic fullscreen
 					// lazyLoad: 'open',
 					lazyLoad: 'visible',
 					disableScreenfull: true
-				})
-			);
+				});
 
-			$('#open').click(function() {
-				$('.gallery .fullscreen-image:first').apImageFullscreen('open');
+				$('#open').click(function() {
+					$('.gallery .fullscreen-image:first').apImageFullscreen('open');
+				}).click();
 			});
 
-			// console.debug('--------------------');
-			// console.debug(
-			// 	$('.gallery a').apImageFullscreen({
-			// 	})
-			// );
-
-				/*
-				$('#link').click(function() {
-					if (screenfull.enabled) {
-						var targetImageUrl = $(this).attr('href');
-						var element = $('<div class="fullscreen-container"><div class="wrapper"><img style="display: none;" /></div></div>');
-						$('body').append(element);
-
-						var targetImage = element.find('img:first');
-						targetImage.on('load', function() {
-							console.debug(this.width + ', ' + this.height);
-
-							targetImage.attr({
-								width: this.width,
-								height: this.height
-							});
-
-							var w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-							var h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-
-							var x = Math.min(this.width, w);
-							var y = Math.min(this.height, h);
-
-							if (x - w < y - h) {
-								targetImage.css({
-									width: '80%',
-									height: 'auto'
-								});
-							} else {
-								targetImage.css({
-									width: 'auto',
-									height: '80%'
-								});
-							}
-
-
-
-							targetImage.attr('width', Math.min(this.width, w));
-							targetImage.attr('height', Math.min(this.height, h));
-							targetImage.fadeIn();
-						});
-						targetImage.attr('src', targetImageUrl);
-
-
-						$('body').append(element);
-						// var image = $(this).children('img:first')[0];
-						screenfull.request(element[0]);
-						return false;
-					}
-				});
-*/
-			// });
 		</script>
 	</body>
 </html>
