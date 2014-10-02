@@ -1,6 +1,6 @@
 /**
-* @license ap-image-zoom.js v0.7
-* Updated: 17.09.2014
+* @license ap-image-zoom.js v0.8
+* Updated: 01.10.2014
 * {DESCRIPTION}
 * Copyright (c) 2014 armin pfaeffle
 * Released under the MIT license
@@ -167,7 +167,6 @@
 		_addLoadingAnimation: function() {
 			var $element;
 			switch (this.settings.loadingAnimation) {
-				// loadingAnimationData
 				case 'text':
 					$element = $('<div></div>').addClass(cssPrefix + 'loading-animation-text');
 					$element.html(this.settings.loadingAnimationData);
@@ -211,11 +210,11 @@
 
 			// Remove throbber and show image
 			if (this.$loadingAnimation) {
-				this.$loadingAnimation.fadeOut(200, function() {
+				this.$loadingAnimation.fadeOut(this.settings.loadingAnimationFadeOutDuration, function() {
 					$(this).remove();
 				});
 			}
-			this.$image.fadeIn(200);
+			this.$image.fadeIn(this.settings.loadingAnimationFadeOutDuration);
 
 			this._trigger('init');
 		},
@@ -756,29 +755,31 @@
 		/**
 		 *
 		 */
-		_trigger: function(eventType, args) {
-			var optionName = 'on' + eventType.ucfirst();
-			if (typeof this.settings[optionName] == 'function') {
-				var f = this.settings[optionName];
-				f.apply(this.$target, args);
+		_trigger: function(eventType, args, $context) {
+			var optionName = 'on' + eventType.ucfirst(),
+				f = this.settings[optionName];
+			$context = ($context ? $context : this.$target);
+			if (typeof f == 'function') {
+				f.apply($context, args);
 			}
 			eventType = eventPrefix + eventType.ucfirst();
-			this.$target.trigger(eventType, args);
+			$context.trigger(eventType, args);
 		},
 
 		/**
 		 *
 		 */
-		_triggerHandler: function(eventType, args) {
+		_triggerHandler: function(eventType, args, $context) {
 			var optionName = 'on' + eventType.ucfirst(),
+				f = this.settings[optionName],
 				callbackResult = undefined,
 				result;
-			if (typeof this.settings[optionName] == 'function') {
-				var f = this.settings[optionName];
-				callbackResult = f.apply(this.$target, args);
+			$context = ($context ? $context : this.$target);
+			if (typeof f == 'function') {
+				callbackResult = f.apply($context, args);
 			}
 			eventType = eventPrefix + eventType.ucfirst();
-			result = ((result = this.$target.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
+			result = ((result = $context.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
 			return result;
 		},
 
@@ -909,6 +910,34 @@
 		/**
 		 *
 		 */
+		zoomMin: function() {
+			this._zoomTo(this.settings.minZoom);
+		},
+
+		/**
+		 *
+		 */
+		zoomMax: function() {
+			this._zoomTo(this.settings.maxZoom);
+		},
+
+		/**
+		 *
+		 */
+		zoomToggle: function() {
+			var imageSize = this._imageSize();
+			if (imageSize.width == this.sizeConstraints.width.max) {
+				this._resetSize();
+				this._center();
+			}
+			else {
+				this._zoomTo(this.settings.maxZoom);
+			}
+		},
+
+		/**
+		 *
+		 */
 		option: function(key, value) {
 			if (!key) {
 				// Return copy of current settings
@@ -1034,12 +1063,13 @@
 	};
 
 	/**
-	 * Default settings for ApZoomImage plugin.
+	 * Default settings for ApImageZoom plugin.
 	 */
 	ApImageZoom.defaultSettings = {
 		imageUrl: undefined,
 		loadingAnimation: undefined,	// Options: undefined, 'text', 'throbber', 'image'
 		loadingAnimationData: undefined,
+		loadingAnimationFadeOutDuration: 200,
 		cssWrapperClass: undefined,
 		initialZoom: 'auto',			// Options: value (float), 'none', 'auto', 'min', 'max'
 		minZoom: 0.2,					// = 20%

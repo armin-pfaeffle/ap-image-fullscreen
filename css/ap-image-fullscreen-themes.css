@@ -13,32 +13,39 @@
 	background-color: rgba(255, 255, 255, 1.0);
 	}
 
-
 .apifs-wrapper .apifs-close-button.apifs-button-theme-light {
-	background-position:  -42px 18px;
+	background-position: -42px 18px;
 	}
 
 .apifs-wrapper .apifs-next-button.apifs-button-theme-light {
-	background-position:  -40px -44px;
+	background-position: -40px -44px;
 	}
 
-	.apifs-wrapper .apifs-previous-button.apifs-button-theme-light {
-		background-position:  -43px -104px;
-		}
+.apifs-wrapper .apifs-previous-button.apifs-button-theme-light {
+	background-position: -43px -104px;
+	}
+
+.apifs-wrapper .apifs-download-button.apifs-button-theme-light {
+	background-position: -39px -161px;
+	}
 
 
 @media screen and (max-width: 800px) {
 
 	.apifs-wrapper .apifs-close-button.apifs-button-theme-light {
-		background-position:  -34px 15px;
+		background-position: -34px 15px;
 		}
 
 	.apifs-wrapper .apifs-next-button.apifs-button-theme-light {
-		background-position:  -33px -37px;
+		background-position: -33px -37px;
 		}
 
 	.apifs-wrapper .apifs-previous-button.apifs-button-theme-light {
-		background-position:  -36px -86px;
+		background-position: -36px -86px;
+		}
+
+	.apifs-wrapper .apifs-download-button.apifs-button-theme-light {
+		background-position: -32px -131px;
 		}
 }
 
@@ -67,30 +74,38 @@
 	}
 
 .apifs-wrapper .apifs-close-button.apifs-button-theme-contrast {
-	background-position:   18px 18px;
+	background-position: 18px 18px;
 	}
 
 .apifs-wrapper .apifs-next-button.apifs-button-theme-contrast {
-	background-position:   20px -44px;
+	background-position: 20px -44px;
 	}
 
 .apifs-wrapper .apifs-previous-button.apifs-button-theme-contrast {
-	background-position:   17px -104px;
+	background-position: 17px -104px;
+	}
+
+.apifs-wrapper .apifs-download-button.apifs-button-theme-contrast {
+	background-position: 21px -161px;
 	}
 
 
 @media screen and (max-width: 800px) {
 
 	.apifs-wrapper .apifs-close-button.apifs-button-theme-contrast {
-		background-position:   15px 15px;
+		background-position: 15px 15px;
 		}
 
 	.apifs-wrapper .apifs-next-button.apifs-button-theme-contrast {
-		background-position:   17px -37px;
+		background-position: 17px -37px;
 		}
 
 	.apifs-wrapper .apifs-previous-button.apifs-button-theme-contrast {
-		background-position:   14px -86px;
+		background-position: 14px -86px;
+		}
+
+	.apifs-wrapper .apifs-download-button.apifs-button-theme-contrast {
+		background-position: 18px -131px;
 		}
 }
 
@@ -123,6 +138,10 @@
 	background-position: -103px -104px;
 	}
 
+.apifs-wrapper .apifs-download-button.apifs-button-theme-dark {
+	background-position: -99px -161px;
+	}
+
 
 @media screen and (max-width: 800px) {
 
@@ -136,5 +155,9 @@
 
 	.apifs-wrapper .apifs-previous-button.apifs-button-theme-dark {
 		background-position: -86px -86px;
+		}
+
+	.apifs-wrapper .apifs-download-button.apifs-button-theme-dark {
+		background-position: -82px -131px;
 		}
 }

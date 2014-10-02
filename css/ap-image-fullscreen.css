@@ -1,14 +1,3 @@
-.apifs-clearfix::after {
-	content: "";
-	clear: both;
-	display: block;
-	height: 0;
-	visibility: hidden;
-	width: 0;
-	line-height: 0;
-	font-size: 0;
-	}
-
 html.apifs-pseudo-fullscreen,
 html.apifs-pseudo-fullscreen > body {
 	width: 100%;
@@ -18,13 +7,13 @@ html.apifs-pseudo-fullscreen > body {
 
 .apifs-container {
 	visibility: hidden;
-	position: fixed;
+	position: absolute;
 	z-index: 9999;
 	left: 0;
 	top: 0;
 	width: 100%;
 	height: 100%;
-	background-color: #ecc;
+	background-color: #fff;
 	}
 
 .apifs-container,
@@ -48,37 +37,52 @@ html.apifs-pseudo-fullscreen > body {
 	}
 
 	.apifs-container .apifs-fullscreen-element {
+		position: relative;
 		width: 100%;
 		height: 100%;
+		background-color: #fff;
 		}
 
 	.apifs-container .apifs-wrapper {
+		position: relative;
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
-		position: relative;
 		}
 
+
+
+
+	.apifs-container .apifs-wrapper  .apifs-log {
+		background-color: #00f;
+		color: #fff;
+		text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+		padding: 10px;
+		position: absolute;
+		z-index: 9999;
+		left: 10px;
+		top: 10px;
+		width: 50%;
+		}
+
+
+
 	.apifs-container .apifs-images {
+		position: relative;
+		z-index: 1;
+		left: 0;
+		top: 0;
 		width: 100%;
 		height: 100%;
 		white-space: nowrap;
-		position: relative;
-		z-index: 1;
 		}
 
 		.apifs-container .apifs-images > li {
-			position: relative;
 			display: inline-block;
 			width: 100%;
 			height: 100%;
 			overflow: hidden;
 			background-color: #eee;
-			}
-
-		.apifs-container .apifs-images > li > .apiz-wrapper {
-			width: 100%;
-			height: 100%;
 			}
 
 	.apifs-wrapper .apifs-buttons {
@@ -98,7 +102,7 @@ html.apifs-pseudo-fullscreen > body {
 			border-radius: 40px;
 			text-indent: -9999px;
 			background: url('../images/apifs-controls.png') no-repeat;
-			background-size: 150px 150px; /* = 50 * 3 */
+			background-size: 150px 240px; /* half of real image size */
 			overflow: hidden;
 			-webkit-transition: background-color 0.2s;
 			   -moz-transition: background-color 0.2s;
@@ -152,48 +156,6 @@ html.apifs-pseudo-fullscreen > body {
 		}
 
 
-	/* Theme: default (gray) */
-
-	.apifs-wrapper .apifs-button, /* default theme */
-	.apifs-wrapper .apifs-button.apifs-button-theme-gray {
-		background-color: rgba(160, 160, 160, 0.8);
-		}
-
-	.apifs-wrapper .apifs-button.apifs-button-disabled,
-	.apifs-wrapper .apifs-button.apifs-button-theme-gray.apifs-button-disabled {
-		opacity: 0.5;
-		background-color: rgba(200, 200, 200, 0.5) !important;
-		}
-
-	.apifs-wrapper .apifs-button:hover,
-	.apifs-wrapper .apifs-button.apifs-button-theme-gray:hover {
-		background-color: rgba(120, 120, 120, 0.93);
-		}
-
-
-	/* Button: close */
-
-	.apifs-wrapper .apifs-close-button, /* default theme */
-	.apifs-wrapper .apifs-close-button.apifs-button-theme-gray {
-		background-position: -102px 18px;
-		}
-
-
-	/* Button: next */
-
-	.apifs-wrapper .apifs-next-button, /* default theme */
-	.apifs-wrapper .apifs-next-button.apifs-button-theme-gray {
-		background-position: -100px -44px;
-		}
-
-
-	/* Button: previous */
-
-	.apifs-wrapper .apifs-previous-button, /* default theme */
-	.apifs-wrapper .apifs-previous-button.apifs-button-theme-gray {
-		background-position: -103px -104px;
-		}
-
 
 @media screen and (max-width: 1024px) {
 
@@ -226,7 +188,7 @@ html.apifs-pseudo-fullscreen > body {
 	.apifs-wrapper .apifs-button {
 		width: 50px;
 		height: 50px;
-		background-size: 123px 123px;
+		background-size: 123px 197px;
 		}
 
 	.apifs-wrapper .apifs-buttons-left-top,
@@ -250,32 +212,73 @@ html.apifs-pseudo-fullscreen > body {
 	.apifs-wrapper .apifs-buttons-right-bottom {
 		bottom: 20px;
 		}
-
-	/* Button: close */
-
-	.apifs-wrapper .apifs-close-button, /* default theme */
-	.apifs-wrapper .apifs-close-button.apifs-button-theme-gray {
-		background-position: -84px 15px;
-		}
-
-
-	/* Button: next */
-
-	.apifs-wrapper .apifs-next-button, /* default theme */
-	.apifs-wrapper .apifs-next-button.apifs-button-theme-gray {
-		background-position: -82px -37px;
-		}
-
-
-	/* Button: previous */
-
-	.apifs-wrapper .apifs-previous-button, /* default theme */
-	.apifs-wrapper .apifs-previous-button.apifs-button-theme-gray {
-		background-position: -86px -86px;
-		}
 }
 
 
 @media screen and (max-width: 360px) {
 
+}
+
+
+
+/* Theme: default (gray) */
+
+.apifs-wrapper .apifs-button,
+.apifs-wrapper .apifs-button.apifs-button-theme-gray {
+	background-color: rgba(160, 160, 160, 0.8);
+	}
+
+.apifs-wrapper .apifs-button.apifs-button-disabled,
+.apifs-wrapper .apifs-button.apifs-button-theme-gray.apifs-button-disabled {
+	opacity: 0.5;
+	background-color: rgba(200, 200, 200, 0.5) !important;
+	}
+
+.apifs-wrapper .apifs-button:hover,
+.apifs-wrapper .apifs-button.apifs-button-theme-gray:hover {
+	background-color: rgba(120, 120, 120, 0.93);
+	}
+
+.apifs-wrapper .apifs-close-button,
+.apifs-wrapper .apifs-close-button.apifs-button-theme-gray {
+	background-position: -102px 18px;
+	}
+
+.apifs-wrapper .apifs-next-button,
+.apifs-wrapper .apifs-next-button.apifs-button-theme-gray {
+	background-position: -100px -44px;
+	}
+
+.apifs-wrapper .apifs-previous-button,
+.apifs-wrapper .apifs-previous-button.apifs-button-theme-gray {
+	background-position: -103px -104px;
+	}
+
+.apifs-wrapper .apifs-download-button,
+.apifs-wrapper .apifs-download-button.apifs-button-theme-gray {
+	background-position: -99px -161px;
+	}
+
+
+@media screen and (max-width: 800px) {
+
+	.apifs-wrapper .apifs-close-button,
+	.apifs-wrapper .apifs-close-button.apifs-button-theme-gray {
+		background-position: -84px 15px;
+		}
+
+	.apifs-wrapper .apifs-next-button,
+	.apifs-wrapper .apifs-next-button.apifs-button-theme-gray {
+		background-position: -82px -37px;
+		}
+
+	.apifs-wrapper .apifs-previous-button,
+	.apifs-wrapper .apifs-previous-button.apifs-button-theme-gray {
+		background-position: -86px -86px;
+		}
+
+	.apifs-wrapper .apifs-download-button,
+	.apifs-wrapper .apifs-download-button.apifs-button-theme-gray {
+		background-position: -82px -131px;
+		}
 }

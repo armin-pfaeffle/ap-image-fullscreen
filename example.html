@@ -2,16 +2,16 @@
 <html>
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0;" />
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0" />
 		<meta name="author" content="Armin Pfäffle" />
 		<meta name="robots" content="index, follow" />
 
 		<title>ap-image-fullscreen</title>
 		<link rel="stylesheet" href="css/reset.css" type="text/css" media="screen" />
-		<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="css/ap-image-zoom.min.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="css/ap-image-fullscreen.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="css/ap-image-fullscreen-themes.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
 
 		 <script src="js/jquery.min.js"></script>
 		 <script src="js/hammer.min.js"></script>
@@ -23,28 +23,44 @@
 	</head>
 
 	<body>
-		<input type="button" value="Open" id="open" />
 
 		<ul class="gallery clearfix">
-			<li><a href="images/pride-w'14-3_large.jpg" class="fullscreen-image"><img src="images/pride-w'14-3.jpg" width="325" height="425" alt="dirndl" /></a></li>
+			<li><a href="images/pride-w'14-3_large.jpg" class="fullscreen-image" data-background-color="#ccf"><img src="images/pride-w'14-3.jpg" width="325" height="425" alt="dirndl" /></a></li>
 			<li><img src="images/pride-w'14-6_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
 			<li><a href="images/pride-w'14-8_large.jpg" class="fullscreen-image"><img src="images/pride-w'14-8.jpg" width="325" height="425" alt="dirndl" /></a></li>
 			<li><img src="images/pride-w'14-9_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
+			<li><img src="images/pride-w'14-9_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
+			<li><img src="images/pride-w'14-9_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
 		</ul>
+		<input type="button" value="Open" id="open" />
+
+		<div class="apifs-container">
+			<div class="apifs-fullscreen-element">
+				<div class="apifs-wrapper">
+					<ul class="apifs-images">
+					</ul>
+				</div>
+			</div>
+		</div>
 
 		<script type="text/javascript">
 
 			$(document).ready(function() {
+
 				$('.gallery .fullscreen-image').apImageFullscreen({
-					autoOpen: true, // Only works with disableScreenfull: true, because of browsers do not allow programmatic fullscreen
+					// autoOpen: true, // Only works with enableScreenfull: false, because of browsers do not allow programmatic fullscreen
 					// lazyLoad: 'open',
 					lazyLoad: 'visible',
-					disableScreenfull: true
+					enableScreenfull: false,
+					imageZoom: {
+						loadingAnimation: 'image',
+						loadingAnimationData: 'images/hourglass.png'
+					}
 				});
 
 				$('#open').click(function() {
-					$('.gallery .fullscreen-image:first').apImageFullscreen('open');
-				}).click();
+					$('.gallery .fullscreen-image:first').apImageFullscreen('open', 1);
+				});
 			});
 
 		</script>

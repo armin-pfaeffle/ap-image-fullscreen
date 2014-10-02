@@ -38,7 +38,7 @@ BUGS:
 
 	var datakey = '__apifs__';
 	var cssPrefix = 'apifs-';
-	var eventPrefix = 'apifs';
+	var eventNamespace = 'apifs';
 
 	/**
 	 * Makes the first character of str uppercase and returns that string.
@@ -84,17 +84,17 @@ BUGS:
 	 */
 	function ApImageFullscreen(elements, options) {
 		var self = this;
-		var settings = $.extend({}, ApImageFullscreen.defaultSettings, options);
+		var settings = $.extend(true, {}, ApImageFullscreen.defaultSettings, options);
 
 		// Do not remake the fullscreen plugin
+		// Important: do NOT use jQuery's each() function here because we use return false
 		var instance;
-		for (index in elements) {
+		for (index = 0; index < $(elements).length; index++) {
 			if ((instance = $(elements).data(datakey)) !== undefined) {
 				if (settings.autoReassign) {
 					instance.remove($(elements));
 				}
 				else {
-					// TODO: Show error message?
 					return false;
 				}
 			}
@@ -103,10 +103,6 @@ BUGS:
 		this.$elements = elements;
 		this.settings = settings;
 		this._init();
-
-		if (this.settings.autoOpen) {
-			this.open();
-		}
 
 		// Save the instance
 		$(elements).each(function() {
@@ -123,23 +119,24 @@ BUGS:
 		 *
 		 */
 		_init: function() {
-			var self = this;
-
 			this.currentIndex = 0;
 
 			this._addContainer();
 			this._obtainAndAppendImages();
 			this._addButtons();
+			this._bind();
+
+			if (this.settings.autoOpen) {
+				this.open();
+			}
 		},
 
 		/**
 		 *
 		 */
 		_addContainer: function() {
-			this.$container = $(ApImageFullscreen.template);
-			this.$container.appendTo($('body'));
-
-			this.$fullscreenElement = this.$container.find('.' + cssPrefix + 'fullscreen-element');
+			this.$container = $(ApImageFullscreen.template).appendTo($('body'));
+			this.$fullscreenElement = this.$container.find('.' + cssPrefix + 'fullscreen-element').attr('tabIndex', -1);
 			this.$wrapper = this.$container.find('.' + cssPrefix + 'wrapper');
 			this.$images = this.$container.find('.' + cssPrefix + 'images');
 		},
@@ -150,18 +147,20 @@ BUGS:
 		_obtainAndAppendImages: function() {
 			var self = this,
 				imageUrl,
-				$item;
+				$item,
+				backgroundColor;
 
 			this.$elements.each(function(index) {
 				if ((imageUrl = self._obtainImageUrl(this)) !== undefined) {
 					if (($item = self._addImage(imageUrl)) !== undefined) {
-						// Add references for better access
-						$(this).data(datakey + '.item', $item);
-						$item.data('target', $(this));
+						// Apply background color if it is set
+						if ((backgroundColor = $(this).data('background-color')) !== undefined) {
+							$item.css('background-color', backgroundColor);
+						}
 
 						// Load image if necessary
 						if (self.settings.lazyLoad === false || self.settings.lazyLoad == 'instant') {
-							self._loadImage($item);
+							self._loadImages($item);
 						}
 					}
 				}
@@ -179,7 +178,7 @@ BUGS:
 				case 'a':
 					return $(element).attr('href');
 
-				// TODO: Perhaps there are other to consider?
+				// TODO: Perhaps there are other elements to consider?
 			}
 			return undefined;
 		},
@@ -187,20 +186,16 @@ BUGS:
 		/**
 		 *
 		 */
-		_addImage: function(element, position) {
+		_addImage: function(element, index) {
 			// Obtain image url and create item
 			var imageUrl = (typeof element == 'string' ? element : this._obtainImageUrl(element));
 			if (imageUrl) {
-				var $item = $('<li></li>');
-				$item.data('imageUrl', imageUrl);
-				$item.data('loaded', false);
+				var $item = $('<li></li>').data({imageUrl: imageUrl, loaded: false});
 
-				// Prepare item insert position
-				var childrenCount = this.$images.children().length;
-				var position = Math.max(0, position);
-
-				if (childrenCount > 0 && position < childrenCount && typeof position == 'number') {
-					this.$images.children(':eq(' + position + ')').before($item);
+				var itemCount = this._getItemCount();
+				if (itemCount > 0 && typeof index == 'number') {
+					index = Math.min(Math.max(0, parseInt(index)), itemCount - 1);
+					this._getItem(index).before($item);
 				}
 				else {
 					this.$images.append($item);
@@ -213,36 +208,41 @@ BUGS:
 		/**
 		 *
 		 */
-		_loadImage: function($items) {
+		_loadImages: function($items) {
 			var self = this;
-			if ($items && $items.length > 0) {
-				$items.each(function() {
-					if ($(this).data('loaded') === false) {
-						$(this).apImageZoom({
-							imageUrl: $(this).data('imageUrl'),
-							loadingAnimation: 'throbber',
-							onSwipeRight: function() {
+			$items.each(function() {
+				if ($(this).data('loaded') === false) {
+
+					var options = $.extend({
+						imageUrl: $(this).data('imageUrl'),
+						onSwipeRight: function() {
+							if (self.settings.enableSwipe) {
 								self.previous();
-							},
-							onSwipeLeft: function() {
+							}
+						},
+						onSwipeLeft: function() {
+							if (self.settings.enableSwipe) {
 								self.next();
-							},
-						});
-					}
-				});
-			}
+							}
+						}
+					}, self.settings.imageZoom);
+
+					$(this)
+						.data('loaded', true)
+						.apImageZoom(options);
+
+				}
+			});
 		},
 
 		/**
 		 *
 		 */
 		_addButtons: function() {
-			var self = this;
-
 			this._addButtonContainers();
 
 			// The correct order of the button names is important because of later usage of "append"!
-			var buttonNames = ['previous', 'next', 'close'];
+			var buttonNames = ['previous', 'next', 'close', 'download'];
 			for (index in buttonNames) {
 				var buttonName = buttonNames[index];
 				var options;
@@ -252,36 +252,27 @@ BUGS:
 					var position = options.position.split(',').map(function(s) { return s.trim().toLowerCase(); });
 					if (['left', 'right'].indexOf(position[0]) > -1 && ['top', 'center', 'bottom'].indexOf(position[1]) > -1) {
 						// ... then we can create the button and add it to the correct container
-						var $button = $('<a href="#{0}">{1}</a>'.format(buttonName, buttonName.ucfirst()))
+						var $button = $('<a></a>')
+								.html(buttonName.ucfirst())
+								.attr('href', '#' + buttonName)
 								.addClass('{0}button'.format(cssPrefix))
 								.addClass('{0}{1}-button'.format(cssPrefix, buttonName));
+						if (typeof options.text === 'string') {
+							$button.attr('alt', options.text).attr('title', options.text)
+						}
 						var containerClass = '.{0}buttons-{1}-{2}'.format(cssPrefix, position[0], position[1]);
 						this.$wrapper.find(containerClass).append($button);
 						this['$' + buttonName + 'Button'] = $button;
 
 						// Assign button click: buttonName == name of called method
 						$button.data('clickMethodName', buttonName);
-						$button.click(function() {
-							if (!$(this).hasClass(cssPrefix + 'button-disabled')) {
-								console.debug('click');
-								var f = self[$(this).data('clickMethodName')];
-								if (typeof f == 'function') {
-									f.apply(self);
-								}
-							}
-							return false;
-						});
 
 						if (options.visible === false) {
 							$button.hide();
 						}
-						if (typeof options.theme == 'string') {
-							$button.addClass('{0}button-theme-{1}'.format(cssPrefix, options.theme));
-						}
-						else {
-							$button.addClass('{0}button-theme-{1}'.format(cssPrefix, self.settings.defaultTheme));
-						}
 
+						var themeName = (typeof options.theme === 'string' ? options.theme : this.settings.defaultTheme);
+						$button.addClass('{0}button-theme-{1}'.format(cssPrefix, themeName));
 					}
 				}
 			}
@@ -296,10 +287,10 @@ BUGS:
 			var vertical = ['top', 'center', 'bottom'];
 			for (hIndex in horizontal) {
 				for (vIndex in vertical) {
-					var $container = $('<div></div>')
-							.addClass('{0}buttons'.format(cssPrefix))
-							.addClass('{0}buttons-{1}-{2}'.format(cssPrefix, horizontal[hIndex], vertical[vIndex]));
-					this.$wrapper.append($container);
+					$('<div></div>')
+						.addClass('{0}buttons'.format(cssPrefix))
+						.addClass('{0}buttons-{1}-{2}'.format(cssPrefix, horizontal[hIndex], vertical[vIndex]))
+						.appendTo(this.$wrapper);
 				}
 			}
 		},
@@ -309,13 +300,15 @@ BUGS:
 		 */
 		_updateButtons: function() {
 			var disabledButtonClassName = cssPrefix + 'button-disabled';
+
 			if (this.currentIndex == 0) {
 				this.$previousButton.addClass(disabledButtonClassName);
 			}
 			else if (this.$previousButton.hasClass(disabledButtonClassName)) {
 				this.$previousButton.removeClass(disabledButtonClassName);
 			}
-			if (this.currentIndex == this.$images.children().length - 1) {
+
+			if (this.currentIndex == this._getAllItems().length - 1) {
 				this.$nextButton.addClass(disabledButtonClassName);
 			}
 			else if (this.$nextButton.hasClass(disabledButtonClassName)) {
@@ -332,65 +325,210 @@ BUGS:
 		_bind: function() {
 			var self = this;
 
+			var buttonNames = ['previous', 'next', 'close', 'download'];
+			for (index in buttonNames) {
+				var $button = this['$' + buttonNames[index] + 'Button'];
+				$button.on('click.' + eventNamespace, function() {
+					if (!$(this).hasClass(cssPrefix + 'button-disabled')) {
+						var f = self[$(this).data('clickMethodName')];
+						if (typeof f == 'function') {
+							f.apply(self);
+						}
+					}
+					return false;
+				});
+			}
+
+			this.$fullscreenElement
+				.on('keydown', function(evt) {
+					switch (evt.keyCode) {
+						case 38: // keyup
+							self._getCurrentItem().apImageZoom('zoomIn');
+							evt.preventDefault();
+							break;
+
+						case 39: // keyright
+						case 34: // page-down
+							self.next();
+							evt.preventDefault();
+							break;
+
+						case 40: // keydown
+							self._getCurrentItem().apImageZoom('zoomOut');
+							evt.preventDefault();
+							break;
+
+						case 37: // keyleft
+						case 33: // page-up
+							self.previous();
+							evt.preventDefault();
+							break;
+
+						case 32: // space
+							self._getCurrentItem().apImageZoom('zoomToggle');
+							evt.preventDefault();
+							break;
+
+						case 27: // escape
+							self.close();
+							evt.preventDefault();
+							break;
+
+						case 36: // pos1
+							self.first();
+							evt.preventDefault();
+							break;
+
+						case 35: // end
+							self.last();
+							evt.preventDefault();
+							break;
+
+						case 9: // tab
+							if (evt.shiftKey) {
+								self.previous();
+							}
+							else {
+								self.next();
+							}
+							evt.preventDefault();
+							break;
+					}
+				});
 		},
 
 		/**
 		 *
 		 */
 		_unbind: function() {
+			var buttonNames = ['previous', 'next', 'close', 'download'];
+			for (index in buttonNames) {
+				var $button = this['$' + buttonNames[index] + 'Button'];
+				$button.off('click.' + eventNamespace);
+			}
 
+			this.$fullscreenElement.off('keydown.' + eventNamespace);
 		},
 
 		/**
 		 *
 		 */
 		_show: function(index, animate) {
-			// Make index valid
-			var index = Math.min(Math.max(index, 0), this.$images.children().length);
-			this.currentIndex = index;
+			var self = this;
 
-			// Load image if it should be loaded when getting visible
-			if (this.settings.lazyLoad == 'visible') {
-				this._loadImage(this.$images.children(':eq(' + index + ')'));
+			// Make index valid
+			index = Math.min(Math.max(index, 0), this._getAllItems().length);
+			this.currentIndex = index;
+			var $item = this._getItem(index);
+
+			// Lazy load image method for after showing page
+			var loadImage = function() {
+				if (self.settings.lazyLoad == 'visible') {
+					self._loadImages($item);
+				}
+			}
+
+			// It's importan to reset image BEFORE it is shown
+			if (this.settings.resetOnScroll) {
+				this._resetItems($item);
 			}
 
 			// Move images container to the right position, so it shows image with given index
 			var left = (-1 * index * 100) + '%';
-			if (animate) {
-				this.$images.animate({left: left});
+			if (animate === true) {
+				this.$images
+					.stop(true, false)
+					.animate({left: left}, this.settings.slideDuration, loadImage);
 			}
 			else {
 				this.$images.css('left', left);
+				loadImage();
 			}
+
+			this.$fullscreenElement.focus();
 			this._updateButtons();
 		},
 
 		/**
 		 *
 		 */
-		_trigger: function(eventType, args) {
-			var optionName = 'on' + eventType.ucfirst();
-			var f = this.settings[optionName];
-			if (typeof f == 'function') {
-				f.apply(this.$target, args);
-			}
-			eventType = eventPrefix + eventType.ucfirst();
-			this.$target.trigger(eventType, args);
+		_getItem: function(index) {
+			var $item = this.$images.children(':eq(' + index + ')');
+			return $item;
 		},
 
 		/**
 		 *
 		 */
-		_triggerHandler: function(eventType, args) {
+		_getCurrentItem: function() {
+			var $item = this._getItem(this.currentIndex);
+			return $item;
+		},
+
+		/**
+		 *
+		 */
+		_getAllItems: function() {
+			var $items = this.$images.children();
+			return $items;
+		},
+
+		/**
+		 *
+		 */
+		_getItemCount: function() {
+			var count = this.$images.children().length;
+			return count;
+		},
+
+		/**
+		 *
+		 */
+		_resetItems: function($items) {
+			var self = this;
+			if ($items == undefined) {
+				$items = this._getAllItems();
+			}
+			else if (typeof $items == 'number') {
+				$items = this._getItem($items);
+			}
+
+			$items.each(function() {
+				if ($(this).data('loaded') === true) {
+					$(this).apImageZoom('reset');
+					self._trigger('reset', [$(this)]);
+				}
+			});
+		},
+
+		/**
+		 *
+		 */
+		_trigger: function(eventType, args, $context) {
 			var optionName = 'on' + eventType.ucfirst(),
-				callbackResult = undefined,
-				result,
 				f = this.settings[optionName];
 			if (typeof f == 'function') {
-				callbackResult = f.apply(this.$target, args);
+				$context = ($context ? $context : this._getCurrentItem());
+				f.apply($context, args);
 			}
-			eventType = eventPrefix + eventType.ucfirst();
-			result = ((result = this.$target.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
+			eventType = eventNamespace + eventType.ucfirst();
+			this._getCurrentItem().trigger(eventType, args);
+		},
+
+		/**
+		 *
+		 */
+		_triggerHandler: function(eventType, args, $context) {
+			var optionName = 'on' + eventType.ucfirst(),
+				f = this.settings[optionName],
+				callbackResult = undefined,
+				result;
+			$context = ($context ? $context : this._getCurrentItem());
+			if (typeof f == 'function') {
+				callbackResult = f.apply($context, args);
+			}
+			eventType = eventNamespace + eventType.ucfirst();
+			result = ((result = $context.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
 			return result;
 		},
 
@@ -398,6 +536,7 @@ BUGS:
 		 *
 		 */
 		_showError: function(message) {
+			// TODO
 			/*
 			if (!this.$errorMessage) {
 				this.$errorMessage = $('<div></div>').addClass(cssPrefix + 'error');
@@ -413,27 +552,29 @@ BUGS:
 		/**
 		 *
 		 */
-		isOpen: function() {
-		},
-
-		/**
-		 *
-		 */
 		open: function(index) {
-			var self = this;
-
 			// Load all images if necessary
 			if (this.settings.lazyLoad !== false && this.settings.lazyLoad != 'instant' && this.settings.lazyLoad !== 'visible') {
-				self._loadImage(this.$images.children());
+				this._loadImages(this._getAllItems());
 			}
 
-			if (!this.settings.disableScreenfull && typeof screenfull == 'object' && screenfull.enabled) {
-				$('html').addClass(cssPrefix + 'screenfull');
-				var element = this.$fullscreenElement[0];
-				screenfull.request(element);
+
+			var cssClass;
+			if (this.settings.enableScreenfull && typeof screenfull == 'object' && screenfull.enabled) {
+				cssClass = 'screenfull';
+				screenfull.request( this.$fullscreenElement[0] );
 			}
 			else {
-				$('html').addClass(cssPrefix + 'pseudo-fullscreen');
+				cssClass = 'pseudo-fullscreen';
+
+				// Save scroll position, so we can use overflow: hidden for <html> and <body>
+				// When we close the fullscreen, the scroll position is restored
+				this.scrollPosition = $(window).scrollTop();
+			}
+			$('html').addClass(cssPrefix + cssClass);
+
+			if (this.settings.resetOnOpen) {
+				this._resetItems();
 			}
 
 			index = index || 0;
@@ -444,20 +585,28 @@ BUGS:
 		 *
 		 */
 		close: function() {
-			if (!this.settings.disableScreenfull && typeof screenfull == 'object' && screenfull.enabled) {
-				$('html').removeClass(cssPrefix + 'screenfull');
+			if ($('html').hasClass(cssPrefix + 'screenfull')) {
 				screenfull.exit();
+				$('html').removeClass(cssPrefix + 'screenfull');
 			}
 			else {
 				$('html').removeClass(cssPrefix + 'pseudo-fullscreen');
+				$(window).scrollTop(this.scrollPosition);
 			}
 		},
 
 		/**
 		 *
 		 */
+		isOpen: function() {
+			return $('html').hasClass(cssPrefix + 'pseudo-fullscreen') || $('html').hasClass('cssPrefix' + screenfull);
+		},
+
+		/**
+		 *
+		 */
 		next: function() {
-			if (this.currentIndex < this.$images.children().length - 1) {
+			if (this.currentIndex < this._getItemCount() - 1) {
 				this._show(this.currentIndex + 1, true);
 			}
 		},
@@ -474,7 +623,43 @@ BUGS:
 		/**
 		 *
 		 */
+		first: function() {
+			this._show(0, true);
+		},
+
+		/**
+		 *
+		 */
+		last: function() {
+			this._show(this._getItemCount() - 1, true);
+		},
+
+		/**
+		 *
+		 */
+		add:function() {
+
+			// TODO
+
+			this._trigger('add');
+		},
+
+		/**
+		 *
+		 */
 		remove: function($image) {
+
+			// TODO
+			this._trigger('remove');
+		},
+
+		/**
+		 *
+		 */
+		download: function() {
+			var url = this._getCurrentItem().find('img').attr('src');
+			window.open(url);
+			this._trigger('download');
 		},
 
 		/**
@@ -498,7 +683,6 @@ BUGS:
 					options = key;
 				}
 				this._setOptions(options);
-				this._setCssClasses();
 			}
 		},
 
@@ -531,6 +715,17 @@ BUGS:
 			// 	this.$image.removeData(datakey);
 			// }
 		}
+
+
+
+		,_log: function(message) {
+			if (!this.$log) {
+				this.$log = $('<div></div>').addClass(cssPrefix + 'log').appendTo(this.$wrapper);
+			}
+			this.$log.append( $('<p></p>').html(message) );
+		}
+
+
 	};
 
 	/**
@@ -560,7 +755,7 @@ BUGS:
 		}
 		else {
 			var instance = new ApImageFullscreen(this, options);
-			return this;
+			return (instance ? this : false);
 		}
 	};
 
@@ -569,22 +764,37 @@ BUGS:
 	 */
 	ApImageFullscreen.defaultSettings = {
 		autoReassign: true,
+
 		autoOpen: false,
+		imageZoom : {
+			loadingAnimation: 'throbber',
+			loadingAnimationFadeOutDuration: 500,
+			doubleTap: 'zoomToggle'
+		},
 		lazyLoad: 'open',				// Options: false, 'instant', 'open', 'visible'
-		defaultTheme: 'dark',
+		slideDuration: 300,
+		resetOnOpen: true,
+		resetOnScroll: true,
+
+		defaultTheme: 'gray',			// Themes: 'gray', 'contrast', 'light', 'dark'
 		buttons: {						// Options for position: left|right, top|center|bottom
-			close:    { visible: true, position: 'right, top', theme: undefined },
-			next:     { visible: true, position: 'right, bottom', theme: undefined },
-			previous: { visible: true, position: 'right, bottom', theme: 'undefined' }
+			close:    { visible: true, position: 'right, top', text: 'Close', theme: undefined },
+			next:     { visible: true, position: 'right, bottom', text: 'Next', theme: undefined },
+			previous: { visible: true, position: 'right, bottom', text: 'Previous', theme: undefined },
+			download: { visible: true, position: 'left, bottom', text: 'Download', theme: undefined }
 		},
 
-		disableScreenfull: false
+		enableScreenfull: true,
+		enableSwipe: true
 	};
 
+	/**
+	 *
+	 */
 	ApImageFullscreen.template =
 		'<div class="' + cssPrefix + 'container">' +
 			'<div class="' + cssPrefix + 'fullscreen-element">' +
-				'<div class="' + cssPrefix + 'wrapper ' + cssPrefix +'">' +
+				'<div class="' + cssPrefix + 'wrapper ' + cssPrefix +'clearfix">' +
 					'<ul class="' + cssPrefix + 'images">' +
 					'</ul>' +
 				'</div>' +
