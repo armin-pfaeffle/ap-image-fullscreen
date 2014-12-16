@@ -8,58 +8,62 @@
 
 		<title>ap-image-fullscreen</title>
 		<link rel="stylesheet" href="css/reset.css" type="text/css" media="screen" />
-		<link rel="stylesheet" href="css/ap-image-zoom.min.css" type="text/css" media="screen" />
-		<link rel="stylesheet" href="css/ap-image-fullscreen.css" type="text/css" media="screen" />
-		<link rel="stylesheet" href="css/ap-image-fullscreen-themes.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="ap-image-zoom/lib/css/ap-image-zoom.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="lib/css/ap-image-fullscreen.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="lib/css/ap-image-fullscreen-themes.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="css/style.css" type="text/css" media="screen" />
 
 		 <script src="js/jquery.min.js"></script>
-		 <script src="js/hammer.min.js"></script>
-		 <script src="js/jquery.mousewheel.min.js"></script>
-		 <script src="js/screenfull.js"></script>
-		 <script src="js/ap-image-zoom.js"></script>
-		 <script src="js/ap-image-fullscreen.js"></script>
+		 <script src="ap-image-zoom/js/hammer.min.js"></script>
+		 <script src="ap-image-zoom/js/jquery.mousewheel.min.js"></script>
+		 <script src="ap-image-zoom/lib/js/ap-image-zoom.js"></script>
+		 <script src="js/screenfull.min.js"></script>
+		 <script src="lib/js/ap-image-fullscreen.js"></script>
 		<!--[if lt IE 9]><script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
 	</head>
 
 	<body>
-
-		<ul class="gallery clearfix">
-			<li><a href="images/pride-w'14-3_large.jpg" class="fullscreen-image" data-background-color="#ccf"><img src="images/pride-w'14-3.jpg" width="325" height="425" alt="dirndl" /></a></li>
-			<li><img src="images/pride-w'14-6_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
-			<li><a href="images/pride-w'14-8_large.jpg" class="fullscreen-image"><img src="images/pride-w'14-8.jpg" width="325" height="425" alt="dirndl" /></a></li>
-			<li><img src="images/pride-w'14-9_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
-			<li><img src="images/pride-w'14-9_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
-			<li><img src="images/pride-w'14-9_large.jpg" width="325" height="425" alt="dirndl" class="fullscreen-image" /></li>
-		</ul>
-		<input type="button" value="Open" id="open" />
-
-		<div class="apifs-container">
-			<div class="apifs-fullscreen-element">
-				<div class="apifs-wrapper">
-					<ul class="apifs-images">
-					</ul>
-				</div>
+		<div class="controls-container">
+			<header>
+				ap-image-fullscreen
+			</header>
+			<div class="options">
+				<input type="checkbox" id="use-fullscreen" name="use-fullscreen" />
+				<label for="use-fullscreen">Use fullscreen</label>
+				<br />
+				<br />
+				<input type="button" value="Open" id="open" />
 			</div>
 		</div>
 
+		<ul class="images clearfix">
+			<li><a href="images/pride-w'14-3_large.jpg"></a></li>
+			<li><a href="images/pride-w'14-8_large.jpg"></a></li>
+			<li><a href="images/pride-w'14-9_large.jpg"></a></li>
+			<li><a href="images/pride-w'14-6_large.jpg"></a></li>
+			<li><a href="images/pride-w'14-3_large.jpg"></a></li>
+			<li><a href="images/pride-w'14-8_large.jpg"></a></li>
+			<li><a href="images/pride-w'14-6_large.jpg" data-background-color="#800"></a></li>
+		</ul>
+
+
 		<script type="text/javascript">
-
 			$(document).ready(function() {
-
-				$('.gallery .fullscreen-image').apImageFullscreen({
-					// autoOpen: true, // Only works with enableScreenfull: false, because of browsers do not allow programmatic fullscreen
-					// lazyLoad: 'open',
+				$('.images a').apImageFullscreen({
+					// Only works with enableScreenfull: false, because of browsers do not allow programmatic fullscreen
+					// autoOpen: true,
+					// enableScreenfull: true,
 					lazyLoad: 'visible',
-					enableScreenfull: false,
 					imageZoom: {
 						loadingAnimation: 'image',
-						loadingAnimationData: 'images/hourglass.png'
-					}
+						loadingAnimationData: 'lib/images/hourglass_b.png'
+					},
 				});
 
 				$('#open').click(function() {
-					$('.gallery .fullscreen-image:first').apImageFullscreen('open', 1);
+					$('.images a:first')
+						.apImageFullscreen('option', 'enableScreenfull', $('#use-fullscreen').is(':checked'))
+						.apImageFullscreen('open', 1);
 				});
 			});
 

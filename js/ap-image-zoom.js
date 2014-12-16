@@ -1,6 +1,6 @@
-/**
-* @license ap-image-zoom.js v0.8
-* Updated: 01.10.2014
+ /**
+* @license ap-image-zoom.js v1.3
+* Updated: 11.12.2014
 * {DESCRIPTION}
 * Copyright (c) 2014 armin pfaeffle
 * Released under the MIT license
@@ -11,14 +11,16 @@
 
 	var datakey = '__apiz__';
 	var cssPrefix = 'apiz-';
-	var eventPrefix = 'apiz';
+	var eventNamespace = 'apiz';
+	var triggerEventPrefix = 'apiz';
+
 
 	/**
 	 * Makes the first character of str uppercase and returns that string.
 	 */
 	function ucfirst(str) {
 		str += ''; // ensure that str is a string
-		var c = str[0].toUpperCase();
+		var c = str.charAt(0).toUpperCase();
 		return c + str.substr(1);
 	}
 
@@ -101,47 +103,64 @@
 		_init: function() {
 			var self = this;
 
-			this.panning = false;
+			this.loading = true;
+			this.dragging = false;
 			this.pinching = false;
+			this.preventClickBecauseOfDragging = false;
+			this.preventClickForDoubleClick = false;
 
 			this._addWrapper();
-			this._setCssClasses();
+			this._updateCssClasses();
 
 			if (!this.imageUrl) {
+				this.loading = false;
 				this._showError('Invalid image url!');
+				this.disable();
 			}
-
-			// Create a temporary hidden copy of image, so we obtain the real/natural size
-			this.$image = $('<img />')
-				.hide()
-				.prependTo(this.$wrapper)
-				.load(function() {
-					self._obtainImageSizes();
-					self._setConstraints();
-					self._setup();
-				})
-				.error(function() {
-					self._showError('Error loading image!');
-				})
-				.attr('src', this.imageUrl);
+			else {
+				// Create a temporary hidden copy of image, so we obtain the real/natural size
+				// We have to define the variable first, because of IE8 and lower
+				this.$image = $('<img />');
+				this.$image
+					.hide()
+					.prependTo(this.$wrapper)
+					.load(function() {
+						self._obtainNaturalImageSize();
+						self._setup();
+						self.$wrapper.removeClass(cssPrefix + 'loading');
+					})
+					.error(function() {
+						self.loading = false;
+						self.$wrapper.removeClass(cssPrefix + 'loading');
+						self._showError('Error loading image!');
+						self.disable();
+					})
+					.attr('src', this.imageUrl);
+			}
 		},
 
 		/**
 		 *
 		 */
 		_addWrapper: function() {
-			// Setup wrapper and overlay
-			this.$wrapper = $('<div></div>').addClass(cssPrefix + 'wrapper');
-			this.$overlay = $('<div></div>').addClass(cssPrefix + 'overlay');
-			this.$wrapper.append(this.$overlay);
+			// Setup wrapper and overlay which is for detecting all events
+			this.$wrapper = $('<div></div>')
+								.addClass(cssPrefix + 'wrapper')
+								.addClass(cssPrefix + 'mode-' + this.mode)
+								.addClass(cssPrefix + 'loading');
+			this.$overlay = $('<div></div>')
+								.addClass(cssPrefix + 'overlay')
+								.appendTo(this.$wrapper);
 
-			// Add loading text/throbber
 			this._addLoadingAnimation();
 
 			// Hide image and move it into added wrapper or add wrapper target container
 			if (this.mode == 'image') {
 				this.imageIsVisible = this.$target.is(':visible');
-				this.$target.hide().after(this.$wrapper).appendTo(this.$wrapper);
+				this.$target
+					.hide()
+					.after(this.$wrapper)
+					.appendTo(this.$wrapper);
 			}
 			else {
 				this.$wrapper.appendTo(this.$target);
@@ -159,6 +178,49 @@
 				}
 			}
 			this.$wrapper.remove();
+		},
+
+		/**
+		 *
+		 */
+		_updateCssClasses: function() {
+			if (typeof this.settings.cssWrapperClass == 'string' && !this.$wrapper.hasClass(this.settings.cssWrapperClass)) {
+				this.$wrapper.addClass(this.settings.cssWrapperClass);
+			}
+			var cssClasses = {
+				hammer: {
+					status: this.settings.hammerPluginEnabled,
+					enabled: 'hammer-enabled',
+					disabled: 'hammer-disabled'
+				},
+				mouseWheel: {
+					status: this.settings.mouseWheelPluginEnabled,
+					enabled: 'mouse-wheel-enabled',
+					disabled: 'mouse-wheel-disabled'
+				},
+				enabled: {
+					status: !this.settings.disabled,
+					enabled: 'enabled',
+					disabled: 'disabled'
+				},
+				enableDragging: {
+					status: this.settings.dragEnabled,
+					enabled: 'drag-enabled',
+					disabled: 'drag-disabled'
+				},
+				enableZooming: {
+					status: this.settings.zoomEnabled,
+					enabled: 'zoom-enabled',
+					disabled: 'zoom-disabled'
+				}
+			};
+
+			for (key in cssClasses) {
+				var property = cssClasses[key];
+				this.$wrapper
+					.removeClass(cssPrefix + (property.status ? property.disabled : property.enabled))
+					.addClass(cssPrefix + (property.status ? property.enabled : property.disabled));
+			}
 		},
 
 		/**
@@ -185,18 +247,43 @@
 					$element.css('background-image', 'url(\'' + this.settings.loadingAnimationData + '\')');
 					break;
 			}
-			if ($element) {
+
+			if (this._triggerHandler('beforeShowLoadingAnimation', [$element]) !== false) {
 				this.$loadingAnimation = $element;
-				this.$wrapper.append($element);
+				this.$wrapper
+					.append($element)
+					.addClass(cssPrefix + 'loading-animation');
+				this._trigger('showLoadingAnimation');
 			}
 		},
 
 		/**
 		 *
 		 */
-		_obtainImageSizes: function() {
+		_removeLoadingAnimation: function() {
+			var self = this;
+			if (this.$loadingAnimation) {
+				if (typeof this.settings.loadingAnimationFadeOutDuration == 'number') {
+					this.$loadingAnimation.fadeOut(this.settings.loadingAnimationFadeOutDuration, function() {
+						$(this).remove();
+						self.$wrapper.removeClass(cssPrefix + 'loading-animation');
+						self._trigger('hideLoadingAnimation');
+					});
+				}
+				else {
+					this.$loadingAnimation.remove();
+					this.$wrapper.removeClass(cssPrefix + 'loading-animation');
+					this._trigger('hideLoadingAnimation');
+				}
+				this.$loadingAnimation = undefined;
+			}
+		},
+
+		/**
+		 *
+		 */
+		_obtainNaturalImageSize: function() {
 			var $image = (this.mode == 'image' ? this.$target : this.$image);
-			this.originSize = new Size($image.width(), $image.height());
 			this.naturalSize = new Size(this.$image.width(), this.$image.height());
 		},
 
@@ -204,63 +291,27 @@
 		 *
 		 */
 		_setup: function() {
-			this._resetSize();
+			// Default zoom is 1.0, but is validated by min and max zoom and image is centered
+			this.currentPosition = new Point(-1 * this.naturalSize.width / 2, -1 * this.naturalSize.height / 2);
+			this.currentSize = new Size(this.naturalSize.width, this.naturalSize.height);
+			this.currentZoom = this._getValidZoom(1.0);
+
+			this._resetZoom();
 			this._center();
 			this._bind();
 
-			// Remove throbber and show image
-			if (this.$loadingAnimation) {
-				this.$loadingAnimation.fadeOut(this.settings.loadingAnimationFadeOutDuration, function() {
-					$(this).remove();
-				});
+			this.loading = false;
+
+			// Show image
+			this._removeLoadingAnimation();
+			if (typeof this.settings.loadingAnimationFadeOutDuration == 'number') {
+				this.$image.fadeIn(this.settings.loadingAnimationFadeOutDuration);
 			}
-			this.$image.fadeIn(this.settings.loadingAnimationFadeOutDuration);
+			else {
+				this.$image.show();
+			}
 
 			this._trigger('init');
-		},
-
-		/**
-		 *
-		 */
-		_setCssClasses: function() {
-			if (typeof this.settings.cssWrapperClass == 'string') {
-				this.$wrapper.addClass(this.settings.cssWrapperClass);
-			}
-			this.$wrapper.addClass(cssPrefix + 'mode-' + this.mode);
-			var cssClasses = {
-				hammer: {
-					status: !this.settings.disableHammerPlugin,
-					enabled: 'hammer-enabled',
-					disabled: 'hammer-disabled'
-				},
-				mouseWheel: {
-					status: !this.settings.disableMouseWheelPlugin,
-					enabled: 'mouse-wheel-enabled',
-					disabled: 'mouse-wheel-disabled'
-				},
-				enabled: {
-					status: !this.settings.disabled,
-					enabled: 'enabled',
-					disabled: 'disabled'
-				},
-				panEnabled: {
-					status: !this.settings.disablePan,
-					enabled: 'pan-enabled',
-					disabled: 'pan-disabled'
-				},
-				zoomEnabled: {
-					status: !this.settings.disableZoom,
-					enabled: 'zoom-enabled',
-					disabled: 'zoom-disabled'
-				}
-			};
-
-			for (key in cssClasses) {
-				var property = cssClasses[key];
-				this.$wrapper
-					.removeClass(cssPrefix + (property.status ? property.disabled : property.enabled))
-					.addClass(cssPrefix + (property.status ? property.enabled : property.disabled));
-			}
 		},
 
 		/**
@@ -270,25 +321,35 @@
 			var self = this;
 
 			// Hammer: pan, pinch, swipe, tap, double-tap
-			if (!this.settings.disableHammerPlugin && typeof Hammer == "function") {
+			if (this.settings.hammerPluginEnabled && typeof Hammer == "function") {
 				this.hammerManager = new Hammer.Manager( this.$overlay[0] );
 
 				this.hammerManager.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
 				this.hammerManager.add(new Hammer.Pinch({ threshold: 0 })).recognizeWith( this.hammerManager.get('pan') );
 				this.hammerManager.add(new Hammer.Swipe()).recognizeWith( this.hammerManager.get('pan') );
-				this.hammerManager.add(new Hammer.Tap({ event: 'doubletap', taps: 2 }));
+				this.hammerManager.add(new Hammer.Tap({ event: 'doubletap', taps: 2, threshold: 15, posThreshold: 100 })).recognizeWith( this.hammerManager.get('pan') );
 				this.hammerManager.add(new Hammer.Tap());
 
-				this.hammerManager.on("panstart panmove panend", function(evt) { self._onPan(evt); } );
+				this.hammerManager.on("panstart panmove panend", function(evt) { self._onDrag(evt); } );
 				this.hammerManager.on("pinchstart pinchmove pinchend", function(evt) { self._onPinch(evt); } );
 				this.hammerManager.on("swipe", function(evt) { self._onSwipe(evt); } );
-				this.hammerManager.on("tap", function(evt) { self._onTap(evt); } );
-				this.hammerManager.on("doubletap", function(evt) { self._onDoubleTap(evt); } );
+				this.hammerManager.on("tap", function(evt) { self._onClick(evt); } );
+				this.hammerManager.on("doubletap", function(evt) { self._onDoubleClick(evt); } );
+			}
+			else {
+				// Drag & drop
+				this.$overlay.on('mousedown.' + eventNamespace, function(evt) { self._onDrag(evt); } );
+				$(document).on('mouseup.' + eventNamespace, function(evt) { self._onDrag(evt); } );
+				$(document).on('mousemove.' + eventNamespace, function(evt) { self._onDrag(evt); } );
+
+				// Click & double click
+				this.$overlay.on('click.' + eventNamespace, function(evt) { self._onClick(evt); } );
+				this.$overlay.on('dblclick.' + eventNamespace, function(evt) { self._onDoubleClick(evt); } );
 			}
 
 			// MouseWheel: zoom
-			if (!this.settings.disableMouseWheelPlugin && typeof jQuery.fn.mousewheel == "function") {
-				this.$overlay.on('mousewheel.apimagezoom', function(evt) { self._onMouseWheel(evt); } );
+			if (this.settings.mouseWheelPluginEnabled && typeof jQuery.fn.mousewheel == "function") {
+				this.$overlay.mousewheel(function(evt, delta) { self._onMouseWheel(evt); return false; });
 			}
 		},
 
@@ -299,49 +360,76 @@
 			if (this.hammerManager) {
 				this.hammerManager.stop(true); // immediate stop recognition
 				this.hammerManager.destroy();
-				this._isPanning(false);
+				this._isDragging(false);
 				this._isPinching(false);
 			}
-			this.$overlay.off('mousewheel.apimagezoom');
+			else {
+				this.$overlay.off('mousedown.' + eventNamespace);
+				$(document).off('mouseup.' + eventNamespace);
+				$(document).off('mousemove.' + eventNamespace);
+			}
+			this.$overlay.off('mousewheel.' + eventNamespace);
 		},
 
 		/**
 		 *
 		 */
-		_onPan: function(evt) {
-			if (this.settings.disabled || this.settings.disablePan) {
+		_onDrag: function(evt) {
+			if (this.settings.disabled || !this.settings.dragEnabled) {
 				return;
 			}
 
-			if (evt.type == 'panstart') {
-				this._isPanning(true);
-				this.panStart = {
-					imagePosition: this._imagePosition(),
-					cursorPosition: new Point(evt.pointers[0].screenX, evt.pointers[0].screenY)
+			if (evt.type == 'panstart' || evt.type == 'mousedown') {
+				this._isDragging(true);
+				this.dragParams = {
+					imagePosition: this.currentPosition,
+					cursorPosition: new Point(
+						(evt.type == 'panstart' ? evt.pointers[0].screenX : evt.screenX),
+						(evt.type == 'panstart' ? evt.pointers[0].screenY : evt.screenY)
+					)
 				};
-				this._trigger('panStart', [this.panStart.imagePosition]);
+				if (evt.type == 'mousedown') {
+					this.preventClickBecauseOfDragging = false;
+				}
+				this._trigger('dragStart', [this.currentPosition]);
 			}
-			else if (evt.type == 'panend') {
-				this._isPanning(false);
-				this.$wrapper.removeClass(cssPrefix + 'is-panning');
-				this._trigger('panEnd', [this._imagePosition()]);
+			else if (evt.type == 'panend' || evt.type == 'mouseup') {
+				this._isDragging(false);
+				this._trigger('dragEnd', [this.currentPosition]);
 			}
-			else {
+			else if (evt.type == 'panmove' || (evt.type == 'mousemove' && this._isDragging())) {
+				if (evt.type == 'mousemove') {
+					this.preventClickBecauseOfDragging = true;
+				}
 				var position = new Point(
-					this.panStart.imagePosition.x + (evt.pointers[0].screenX - this.panStart.cursorPosition.x),
-					this.panStart.imagePosition.y + (evt.pointers[0].screenY - this.panStart.cursorPosition.y)
+					this.dragParams.imagePosition.x + (evt.type == 'panmove' ? evt.pointers[0].screenX : evt.screenX) - this.dragParams.cursorPosition.x,
+					this.dragParams.imagePosition.y + (evt.type == 'panmove' ? evt.pointers[0].screenY : evt.screenY) - this.dragParams.cursorPosition.y
 				);
-				var updatedPosition = this._move(position);
-				this._trigger('panMove', [updatedPosition]);
+				this._move(position);
+				this._trigger('dragMove', [this.currentPosition]);
 			}
+
 			evt.preventDefault();
 		},
 
 		/**
 		 *
 		 */
+		_isDragging: function(value) {
+			if ((value === true || value === false) && this.dragging !== value) {
+				this.dragging = value;
+				this.$wrapper.toggleClass(cssPrefix + 'dragging');
+			}
+			else {
+				return this.dragging;
+			}
+		},
+
+		/**
+		 *
+		 */
 		_onPinch: function(evt) {
-			if (this.settings.disabled || this.settings.disableZoom) {
+			if (this.settings.disabled || !this.settings.zoomEnabled) {
 				return;
 			}
 
@@ -353,47 +441,55 @@
 				var p2 = new Point(evt.pointers[1].pageX || 0, evt.pointers[1].pageY || 0);
 				var touchCenter = new Point( (p1.x + p2.x) / 2, (p1.y + p2.y) / 2 );
 
-				var imageSize = this._imageSize();
 				var relativeOrigin = new Scale(
-					(touchCenter.x - this.$image.offset().left) / imageSize.width,
-					(touchCenter.y - this.$image.offset().top) / imageSize.height
+					(touchCenter.x - this.$image.offset().left) / this.currentSize.width,
+					(touchCenter.y - this.$image.offset().top) / this.currentSize.height
 				);
 
-				this.pinchStart = {
-					imageSize: imageSize,
-					imagePosition: this._imagePosition(),
+				this.pinchParams = {
+					zoom: this.currentZoom,
+					imageSize: this.currentSize,
+					imagePosition: this.currentPosition,
 					relativeOrigin: relativeOrigin
 				};
-				this._trigger('pinchStart', [imageSize, this.pinchStart.imagePosition]);
+				this._trigger('pinchStart', [this.currentZoom, this.currentSize, this.currentPosition]);
 			}
 			else if (evt.type == 'pinchend') {
 				this._isPinching(false);
-				this._trigger('pinchEnd', [this._imageSize(), this._imagePosition()]);
+				this._trigger('pinchEnd', [this.currentZoom, this.currentSize, this.currentPosition]);
 			}
 			else {
 				// Here we do NOT depend on the internal zoomTo method because while
 				// pinching we have to depend on the values on pinch starts. zoomTo
 				// calculates the values for zooming each step and does not depend on
 				// the start values.
-				var size = new Size(
-					this.pinchStart.imageSize.width * evt.scale,
-					this.pinchStart.imageSize.height * evt.scale
-				);
-				var updatedSize = this._resize(size);
+				var zoom = this.pinchParams.zoom * evt.scale;
+				this._zoomTo(zoom);
 
-				// Only update position if size has been changed
-				if (updatedSize.width > -1) {
-					var deltaWidth = updatedSize.width - this.pinchStart.imageSize.width;
-					var deltaHeight = updatedSize.height - this.pinchStart.imageSize.height;
-					var position = new Point(
-						this.pinchStart.imagePosition.x - (deltaWidth * this.pinchStart.relativeOrigin.x),
-						this.pinchStart.imagePosition.y - (deltaHeight * this.pinchStart.relativeOrigin.y)
-					);
-					var updatedPosition = this._move(position);
-					this._trigger('pinchMove', [updatedSize, updatedPosition]);
-				}
+				var deltaWidth = this.currentSize.width - this.pinchParams.imageSize.width;
+				var deltaHeight = this.currentSize.height - this.pinchParams.imageSize.height;
+				var position = new Point(
+					this.pinchParams.imagePosition.x - (deltaWidth * this.pinchParams.relativeOrigin.x),
+					this.pinchParams.imagePosition.y - (deltaHeight * this.pinchParams.relativeOrigin.y)
+				);
+				this._move(position);
+
+				this._trigger('pinchMove', [this.currentZoom, this.currentSize, this.currentPosition]);
 			}
 			evt.preventDefault();
+		},
+
+		/**
+		 *
+		 */
+		_isPinching: function(value) {
+			if ((value === true || value === false) && this.pinching !== value) {
+				this.pinching = value;
+				this.$wrapper.toggleClass(cssPrefix + 'pinching');
+			}
+			else {
+				return this.pinching;
+			}
 		},
 
 		/**
@@ -404,7 +500,7 @@
 				return;
 			}
 
-			// Only trigger event
+			// Only trigger event, so user can decide what to do with this event
 			var eventType;
 			switch (evt.direction) {
 				case  8: eventType = 'swipeTop'; break;
@@ -413,6 +509,8 @@
 				case  2: eventType = 'swipeLeft'; break;
 			};
 			if (eventType) {
+				this._handleAction(this.settings[eventType], evt);
+
 				this._trigger(eventType, [evt]);
 				evt.preventDefault();
 			}
@@ -421,55 +519,46 @@
 		/**
 		 *
 		 */
-		_onTap: function(evt) {
-			if (this.settings.disabled) {
+		_onClick: function(evt) {
+			if (this.settings.disabled || this.preventClickBecauseOfDragging || this.preventClickForDoubleClick) {
 				return;
 			}
 
-			// TODO: Should be do any action here?
+			if (evt.type == 'click') {
+				// Enable double click flag, so that there are not two click events
+				// Microsoft Windows default double click time: 500ms
+				var self = this;
+				this.preventClickForDoubleClick = true;
+				this.preventClickTimeout = setTimeout(function() {
+					self.preventClickForDoubleClick = false;
+					self.preventClickTimeout = undefined;
+				}, 500);
+			}
 
-			this._trigger('tap', [evt]);
+			this._handleAction(this.settings.click, evt);
+
+			this._trigger('click', [evt]);
 			evt.preventDefault();
 		},
 
 		/**
 		 *
 		 */
-		_onDoubleTap: function(evt) {
+		_onDoubleClick: function(evt) {
 			if (this.settings.disabled) {
 				return;
 			}
 
-			var zoom;
-			var imageSize = this._imageSize();
-			switch (this.settings.doubleTap) {
-				case 'open':
-					window.open(this.imageUrl);
-					break;
-
-				case 'zoomMax':
-					zoom = this.settings.maxZoom;
-					break;
-
-				case 'zoomToggle':
-					if (imageSize.width == this.sizeConstraints.width.max) {
-						this._resetSize();
-						this._center();
-					}
-					else {
-						zoom = this.settings.maxZoom;
-					}
-					break;
-			}
-			if (zoom) {
-				var origin = new Scale(
-					(evt.pointers[0].pageX - this.$image.offset().left) / imageSize.width,
-					(evt.pointers[0].pageY - this.$image.offset().top) / imageSize.height
-				);
-				this._zoomTo(zoom, origin);
+			// Unset double click timeout
+			if (evt.type == 'dblclick' && this.preventClickTimeout) {
+				this.preventClickForDoubleClick = false;
+				clearTimeout(this.preventClickTimeout);
+				this.preventClickTimeout = undefined;
 			}
 
-			this._trigger('doubleTap', [evt]);
+			this._handleAction(this.settings.doubleClick, evt);
+
+			this._trigger('doubleClick', [evt]);
 			evt.preventDefault();
 		},
 
@@ -477,279 +566,301 @@
 		 * Event handler for mouse wheel events.
 		 */
 		_onMouseWheel: function(evt) {
-			if (this.settings.disabled || this.settings.disableZoom || this._isPinching()) {
+			if (this.settings.disabled || !this.settings.zoomEnabled || this._isDragging()) {
 				return;
 			}
 
-			var zoom = this._getZoom() + (this.settings.zoomStep * evt.deltaY);
-			var imageSize = this._imageSize();
+			var zoom = this.currentZoom + (this.settings.zoomStep * evt.deltaY);
 			var origin = new Scale(
-				(evt.pageX - this.$image.offset().left) / imageSize.width,
-				(evt.pageY - this.$image.offset().top) / imageSize.height
+				(evt.pageX - this.$image.offset().left) / this.currentSize.width,
+				(evt.pageY - this.$image.offset().top) / this.currentSize.height
 			);
-			var sizeAndPosition = this._zoomTo(zoom, origin);
+			this._zoomTo(zoom, origin);
 
-			this._trigger('mouseWheel', [sizeAndPosition.size, sizeAndPosition.position]);
+			this._trigger('mouseWheel', [this.currentZoom, this.currentSize, this.currentPosition]);
 			evt.preventDefault();
 		},
 
 		/**
 		 *
 		 */
-		_setConstraints: function() {
-			this.sizeConstraints = {
-				width : {
-					min: this.naturalSize.width * this.settings.minZoom,
-					max: this.naturalSize.width * this.settings.maxZoom
-				},
-				height : {
-					min: this.naturalSize.height * this.settings.minZoom,
-					max: this.naturalSize.height * this.settings.maxZoom
-				}
-			};
-		},
-
-		/**
-		 *
-		 */
-		_resetSize: function() {
-			var updatedSize;
-			if (typeof this.settings.initialZoom == 'float' || this.settings.initialZoom == parseFloat(this.settings.initialZoom)) {
-				var zoom = parseFloat(this.settings.initialZoom);
-				this._zoomTo(zoom);
+		_handleAction: function(action, evt, param) {
+			if (typeof action == 'function') {
+				action.apply(this.$target, evt);
 			}
-			else if (typeof this.settings.initialZoom == 'string') {
-				var size = this.originSize;
-				switch (this.settings.initialZoom) {
-					case "auto":
-						size = this._getAutoFitSize();
+			else {
+				switch (action) {
+					case 'open':
+						window.open(this.imageUrl);
 						break;
 
-					case "min":
-						size = new Size(this.sizeConstraints.width.min, this.sizeConstraints.height.min);
+					case 'zoomIn':
+						this.zoomIn(param);
 						break;
 
-					case "max":
-						size = new Size(this.sizeConstraints.width.max, this.sizeConstraints.height.max);
+					case 'zoomOut':
+						this.zoomOut(param);
+						break;
+
+					case 'zoomMin':
+						this.zoomMin(param);
+						break;
+
+					case 'zoomMax':
+						this.zoomMax(param);
+						break;
+
+					case 'zoomToggle':
+						this.zoomToggle(param);
+						break;
+
+					case 'reset':
+						this.reset();
+						break;
+
+					case 'center':
+						this.center();
 						break;
 				}
-				updatedSize = this._resize(size);
-			}
-			updatedSize = updatedSize || this._imageSize();
-			this._trigger('resetSize', [updatedSize]);
-		},
-
-		/**
-		 * Try to make size 100% width or 100% height so the whole image is visible
-		 */
-		_getAutoFitSize: function() {
-			var overlaySize = this._overlaySize();
-			var imageSize = this._imageSize();
-			var isLandscapeFormat = (overlaySize.width / overlaySize.height) > 1;
-			if (isLandscapeFormat) {
-				size = new Size(imageSize.width * (overlaySize.height / imageSize.height), overlaySize.height);
-			}
-			else {
-				size = new Size(overlaySize.width, imageSize.height * (overlaySize.width / imageSize.width));
-			}
-			return size;
-		},
-
-		/**
-		 *
-		 */
-		_center: function(dimension) {
-			var imageSize = this._imageSize();
-			var overlaySize = this._overlaySize();
-			var position = this._imagePosition();
-			switch (dimension) {
-				case 'x':
-				case 'horizontal':
-					position.x = (overlaySize.width - imageSize.width) / 2;
-					break;
-				case 'y':
-				case 'vertical':
-					position.y = (overlaySize.height - imageSize.height) / 2;
-					break;
-				default:
-					position = new Point((overlaySize.width - imageSize.width) / 2, (overlaySize.height - imageSize.height) / 2);
-			}
-			var updatedPosition = this._move(position);
-			this._trigger('center', [updatedPosition]);
-		},
-
-		/**
-		 * Updates the position of the image considerungs position constraints, so image is
-		 * always visible in overlay.
-		 * Additionally it's possible that image is always centered horizontally, vertically
-		 * or both, if image width or height is less than overlay width or height.
-		 */
-		_move: function(position) {
-			var self = this;
-			var overlaySize = this._overlaySize();
-			var imageSize = this._imageSize();
-
-
-			if (imageSize.width <= overlaySize.width) {
-				var left = Math.min( Math.max(0, position.x), overlaySize.width - imageSize.width );
-				if (self.settings.autoCenter == true || self.settings.autoCenter == 'both' || self.settings.autoCenter == 'horizontal') {
-					left = Math.round( (overlaySize.width - imageSize.width) / 2 );
-				}
-			}
-			else {
-				var left = Math.max( Math.min(0, position.x), overlaySize.width - imageSize.width );
-			}
-
-
-			if (imageSize.height <= overlaySize.height) {
-				var top = Math.min( Math.max(0, position.y), overlaySize.height - imageSize.height );
-				if (self.settings.autoCenter == true || self.settings.autoCenter == 'both' || self.settings.autoCenter == 'vertical') {
-					top = Math.round( (overlaySize.height - imageSize.height) / 2 );
-				}
-			}
-			else {
-				var top = Math.max( Math.min(0, position.y), overlaySize.height - imageSize.height );
-			}
-
-			var adjustedPosition = new Point(left, top);
-			if (this._triggerHandler('beforePositionChange', [adjustedPosition]) === false) {
-				return new Point(-1, -1);
-			}
-			else {
-				this._imagePosition(adjustedPosition);
-				this._trigger('positionChanged', [adjustedPosition])
-				return adjustedPosition;
-			}
-		},
-
-		/**
-		 * Updates the size of the image considering the size constraints. After setting
-		 * the new size is returned because it can differ from input size.
-		 */
-		_resize: function(size) {
-			var adjustedSize = new Size(
-				Math.max(Math.min(size.width, this.sizeConstraints.width.max), this.sizeConstraints.width.min),
-				Math.max(Math.min(size.height, this.sizeConstraints.height.max), this.sizeConstraints.height.min)
-			);
-			if (this._triggerHandler('beforeSizeChange', [adjustedSize]) === false) {
-				return new Size(-1, -1);
-			}
-			else {
-				this._imageSize(adjustedSize);
-				this._trigger('sizeChanged', [adjustedSize])
-				return adjustedSize;
 			}
 		},
 
 		/**
 		 *
 		 */
-		_overlaySize: function() {
+		_getOverlaySize: function() {
 			return new Size(this.$overlay.width(), this.$overlay.height());
-		},
-
-		/**
-		 * Getter and setter for image size.
-		 */
-		_imageSize: function(size) {
-			if (size) {
-				this.$image.width(size.width);
-				this.$image.height(size.height);
-			}
-			else {
-				return new Size(this.$image.width(), this.$image.height());
-			}
-		},
-
-		/**
-		 * Getter and setter for image position.
-		 */
-		_imagePosition: function(position) {
-			if (position) {
-				var overlaySize = this._overlaySize();
-				var marginLeft = position.x - Math.round(overlaySize.width / 2);
-				var marginTop = position.y - Math.round(overlaySize.height / 2);
-				this.$image.css({
-					marginLeft: marginLeft,
-					marginTop: marginTop
-				});
-			}
-			else {
-				return new Point(
-					this.$image.offset().left - this.$overlay.offset().left,
-					this.$image.offset().top - this.$overlay.offset().top
-				);
-			}
-		},
-
-		/**
-		 *
-		 */
-		_isPanning: function(value) {
-			if ((value === true || value === false) && this.panning !== value) {
-				this.panning = value;
-				this.$wrapper.toggleClass(cssPrefix + 'is-panning');
-			}
-			else {
-				return this.panning;
-			}
-		},
-
-		/**
-		 *
-		 */
-		_isPinching: function(value) {
-			if ((value === true || value === false) && this.pinching !== value) {
-				this.pinching = value;
-				this.$wrapper.toggleClass(cssPrefix + 'is-pinching');
-			}
-			else {
-				return this.pinching;
-			}
-		},
-
-		/**
-		 *
-		 */
-		_getZoom: function() {
-			return this._imageSize().width / this.naturalSize.width;
 		},
 
 		/**
 		 *
 		 */
 		_zoomTo: function(zoom, origin) {
-			if (this.settings.disabled || this.settings.disableZoom) {
+			if (this.settings.disabled || !this.settings.zoomEnabled) {
 				return false;
 			}
 
-			// Update size
-			var imageSize = this._imageSize();
-			var newWidth =  this.naturalSize.width * zoom;
-			var newHeight = parseInt(newWidth / imageSize.width * imageSize.height);
-			var updatedSize = this._resize(new Size(newWidth, newHeight));
+			var oldZoom = this.currentZoom;
+			var oldPosition = this.currentPosition;
+			var oldSize = this.currentSize;
 
-			// Only update position if size has been changed
-			var updatedPosition = undefined;
-			if (updatedSize.width > -1) {
-				// if there is no origin given, we define it as center of the image
-				if (!origin) {
-					origin = new Scale(0.5, 0.5);
-				}
-				var deltaWidth = updatedSize.width - imageSize.width;
-				var deltaHeight = updatedSize.height - imageSize.height;
+			if ((zoom = this._getValidZoom(zoom)) >= 0) {
+				this.currentZoom = zoom;
+				this.currentSize = new Size(this.naturalSize.width * this.currentZoom, this.naturalSize.height * this.currentZoom);
+				this.currentPosition = this._getValidPosition(new Point(
+					oldPosition.x - (this.currentSize.width - oldSize.width) * (origin ? origin.x : 0.5),
+					oldPosition.y - (this.currentSize.height - oldSize.height) * (origin ? origin.y : 0.5)
+				));
 
-				var imagePosition = this._imagePosition();
-				var position = new Point(
-					imagePosition.x - (deltaWidth * origin.x),
-					imagePosition.y - (deltaHeight * origin.y)
-				);
-				updatedPosition = this._move(position);
+				this._updateSizeAndPosition();
 			}
-			return {
-				size: updatedSize,
-				position: updatedPosition
-			};
+		},
+
+		/**
+		 *
+		 */
+		_getValidZoom: function(zoom, defaultZoom) {
+			var zoom = this._parseZoom(zoom);
+			var minZoom = this._parseZoom(this.settings.minZoom);
+			var maxZoom = this._parseZoom(this.settings.maxZoom);
+
+			if (zoom !== false) {
+				if (minZoom !== false) {
+					zoom = Math.max(zoom, minZoom);
+				}
+				if (maxZoom !== false) {
+					zoom = Math.min(zoom, maxZoom);
+				}
+			}
+			else {
+				zoom = -1;
+			}
+			return zoom;
+		},
+
+		/**
+		 *
+		 */
+		_parseZoom: function(zoom, defaultValue) {
+			if (typeof zoom == 'number') {
+				return zoom;
+			}
+			else if (typeof zoom == 'string') {
+				var indexOfPercentage = zoom.indexOf('%');
+				if (indexOfPercentage > 0 && indexOfPercentage == zoom.length - 1) {
+					zoom = zoom.substr(0, indexOfPercentage) / 100;
+					return zoom;
+				}
+				else if (zoom == 'contain' || zoom == 'cover') {
+					var overlaySize = this._getOverlaySize();
+					var zoomX = overlaySize.width / this.naturalSize.width;
+					var zoomY = overlaySize.height / this.naturalSize.height;
+					if (zoom == 'contain') {
+						zoom = Math.min(zoomX, zoomY);
+					}
+					else {
+						zoom = Math.max(zoomX, zoomY);
+					}
+					return zoom;
+				}
+			}
+
+			if (defaultValue) {
+				return defaultValue;
+			}
+			else {
+				return false;
+			}
+		},
+
+		/**
+		 *
+		 */
+		_resetZoom: function() {
+			var zoom;
+			if (typeof this.settings.initialZoom == 'number' || this.settings.initialZoom == parseFloat(this.settings.initialZoom)) {
+				zoom = parseFloat(this.settings.initialZoom);
+			}
+			else if (typeof this.settings.initialZoom == 'string') {
+				switch (this.settings.initialZoom) {
+					case "auto":
+					case "contain":
+						zoom = this._getValidZoom('contain');
+						break;
+
+					case "cover":
+						zoom = this._getValidZoom('cover');
+						break;
+
+					case "min":
+						zoom = this._parseZoom(this.settings.minZoom);
+						break;
+
+					case "max":
+						zoom = this._parseZoom(this.settings.maxZoom);
+						break;
+
+					default:
+						zoom = this._getValidZoom(this.settings.initialZoom);
+				}
+			}
+
+			if (zoom) {
+				this._zoomTo(zoom);
+				this._trigger('resetZoom', [this.currentZoom, this.currentSize]);
+			}
+		},
+
+		/**
+		 * Updates the position of the image considerungs position constraints, so image is
+		 * always visible in overlay. Additionally it's possible that image is always centered
+		 * horizontally, vertically or both, if image width or height is less than overlay
+		 * width or height.
+		 */
+		_move: function(position) {
+			var adjustedPosition = this._getValidPosition(position);
+			if (this._triggerHandler('beforePositionChange', [adjustedPosition]) === false) {
+				return false;
+			}
+			else {
+				this.currentPosition = adjustedPosition;
+				this._updateSizeAndPosition();
+				this._trigger('positionChanged', [this.currentPosition])
+				return true;
+			}
+		},
+
+		/**
+		 *
+		 */
+		_getValidPosition: function(position) {
+			var overlaySize = this._getOverlaySize();
+			var left, top;
+
+			// Adjust left value
+			if (this.currentSize.width <= overlaySize.width) {
+				if ($.inArray(this.settings.autoCenter, [true, 'both', 'x', 'h' , 'horizontal']) > -1) {
+					left = -1 * this.currentSize.width / 2;
+				}
+				else {
+					left = Math.min(Math.max(0 - overlaySize.width / 2, position.x), overlaySize.width / 2 - this.currentSize.width);
+				}
+			}
+			else {
+				left = Math.max(Math.min(0 - overlaySize.width / 2, position.x), overlaySize.width / 2 - this.currentSize.width);
+			}
+			left = Math.round(left);
+
+			// Adjust top value
+			if (this.currentSize.height <= overlaySize.height) {
+				if ($.inArray(this.settings.autoCenter, [true, 'both', 'y', 'v' , 'vertical']) > -1) {
+					top = -1 * this.currentSize.height / 2;
+				}
+				else {
+					top = Math.min(Math.max(0 - overlaySize.height / 2, position.y), overlaySize.height / 2 - this.currentSize.height);
+				}
+			}
+			else {
+				top = Math.max(Math.min(0 - overlaySize.height / 2, position.y), overlaySize.height / 2 - this.currentSize.height);
+			}
+			top = Math.round(top);
+
+			return new Point(left, top);
+		},
+
+		/**
+		 * Centerizes image by dimension. If dimension is not given, image is centered
+		 * horizontally and vertically.
+		 */
+		_center: function(dimension) {
+			var position = new Point(this.currentPosition.x, this.currentPosition.y);
+			switch (dimension) {
+				case 'x':
+				case 'h':
+				case 'horizontal':
+					position.x = -1 * this.currentSize.width / 2;
+					break;
+
+				case 'y':
+				case 'v':
+				case 'vertical':
+					position.y = -1 * this.currentSize.height / 2;
+					break;
+
+				default:
+					position = new Point(-1 * this.currentSize.width / 2, -1 * this.currentSize.height / 2);
+			}
+			this._move(position);
+			this._trigger('center', [this.currentPosition]);
+		},
+
+		/**
+		 * Updates the size and position of the image.
+		 */
+		_updateSizeAndPosition: function() {
+			if (this.settings.hardwareAcceleration) {
+				var matrix = 'matrix3d(' + this.currentZoom + ', 0, 0, 0, 0, ' + this.currentZoom + ', 0, 0, 0, 0, ' + this.currentZoom + ', 0, ' + this.currentPosition.x + ', ' + this.currentPosition.y + ', 0, 1)';
+				this.$image.css({
+					'-webkit-transform': matrix,
+					'-moz-transform': matrix,
+					'-ms-transform': matrix,
+					'-o-transform': matrix,
+					'transform': matrix
+				});
+			}
+			else {
+				var width = Math.round(this.naturalSize.width * this.currentZoom) + 'px';
+				var height = Math.round(this.naturalSize.height * this.currentZoom) + 'px';
+				var marginLeft = this.currentPosition.x + 'px';
+				var marginTop = this.currentPosition.y + 'px';
+
+				this.$image.css({
+					width: width,
+					height: height,
+					marginLeft: marginLeft,
+					marginTop: marginTop
+				});
+			}
 		},
 
 		/**
@@ -762,7 +873,7 @@
 			if (typeof f == 'function') {
 				f.apply($context, args);
 			}
-			eventType = eventPrefix + eventType.ucfirst();
+			eventType = triggerEventPrefix + eventType.ucfirst();
 			$context.trigger(eventType, args);
 		},
 
@@ -778,7 +889,7 @@
 			if (typeof f == 'function') {
 				callbackResult = f.apply($context, args);
 			}
-			eventType = eventPrefix + eventType.ucfirst();
+			eventType = triggerEventPrefix + eventType.ucfirst();
 			result = ((result = $context.triggerHandler(eventType, args)) !== undefined ? result : callbackResult);
 			return result;
 		},
@@ -788,35 +899,42 @@
 		 */
 		_showError: function(message) {
 			if (!this.$errorMessage) {
-				this.$errorMessage = $('<div></div>').addClass(cssPrefix + 'error');
+				this.$errorMessage = $('<div></div>').addClass(cssPrefix + 'error-message');
 				this.$wrapper.append(this.$errorMessage);
 			}
 			if (this.$loadingAnimation) {
 				this.$loadingAnimation.remove();
 			}
+			this.$wrapper.addClass(cssPrefix + 'error');
 			this.$errorMessage.html(message);
+
+			this._trigger('error', message)
 		},
 
 		/**
 		 *
 		 */
 		enable: function() {
-			this.settings.disabled = false;
-			this._setCssClasses();
+			if (!this.loading) {
+				this.settings.disabled = false;
+				this._updateCssClasses();
+			}
 		},
 
 		/**
 		 *
 		 */
 		disable: function() {
-			this.settings.disabled = true;
-			this._setCssClasses();
+			if (!this.loading) {
+				this.settings.disabled = true;
+				this._updateCssClasses();
 
-			// Stop hammer recognition
-			if (this.hammerManager) {
-				this.hammerManager.stop(true);
-				this._isPanning(false);
-				this._isPinching(false);
+				// Stop hammer recognition
+				if (this.hammerManager) {
+					this.hammerManager.stop(true);
+					this._isDragging(false);
+					this._isPinching(false);
+				}
 			}
 		},
 
@@ -824,114 +942,173 @@
 		 *
 		 */
 		isDisable: function() {
-			return this.settings.disabled;
+			return (this.loading ? undefined : this.settings.disabled);
 		},
 		/**
 		 *
 		 */
-		isPanning: function() {
-			return this._isPanning();
+		isDragging: function() {
+			return (this.loading ? undefined : this._isDragging());
 		},
 
 		/**
 		 *
 		 */
 		isPinching: function() {
-			return this._isPinching;
+			return (this.loading ? undefined : this._isPinching());
+		},
+
+		/**
+		 *
+		 */
+		isLoading: function() {
+			return this.loading;
 		},
 
 		/**
 		 *
 		 */
 		size: function() {
-			return this._imageSize();
+			return (this.loading ? undefined : this.currentSize);
 		},
 
 		/**
 		 *
 		 */
 		position: function() {
-			return this._imagePosition();
+			return (this.loading ? undefined : this.currentPosition);
 		},
 
 		/**
 		 *
 		 */
 		reset: function() {
-			this._resetSize();
-			this._center();
+			if (!this.loading) {
+				this._resetZoom();
+				this._center();
+			}
 		},
 
 		/**
 		 *
 		 */
 		resetSize: function() {
-			this._resetSize();
+			if (!this.loading) {
+				this._resetZoom();
+			}
 		},
 
 		/**
 		 *
 		 */
 		center: function(dimension) {
-			this._center(dimension);
+			if (!this.loading) {
+				this._center(dimension);
+			}
 		},
 
 		/**
-		 * Getter  and setter for zoom. Parameter origin is optional, but should be used for better
+		 * Getter and setter for zoom. Parameter origin is optional, but should be used for better
 		 * usability experience.
+		 * Zoom value is always returned as float, truncated to five decimals.
 		 */
 		zoom: function(zoom, origin) {
-			if (!zoom) {
-				// return current zoom, rounded to 3 decimals
-				var zoom = this._getZoom();
-				return Math.round(zoom * 1000) / 1000;
+			if (this.loading) {
+				return undefined;
 			}
-			else {
+			if (zoom) {
 				this._zoomTo(zoom, origin);
 			}
+			zoom = Math.round(this.currentZoom * 100000) / 100000;
+			return zoom;
 		},
 
 		/**
 		 * Increments the zoom by settings.zoomStep.
 		 */
-		zoomIn: function(origin) {
-			var zoom = this._getZoom() + this.settings.zoomStep;
-			return this._zoomTo(zoom, origin);
+		zoomIn: function(step, origin) {
+			if (!this.loading) {
+				var zoom = this.currentZoom + (step ? step : this.settings.zoomStep);
+				this._zoomTo(zoom, origin);
+			}
 		},
 
 		/**
 		 * Descrements the zoom by settings.zoomStep.
 		 */
-		zoomOut: function(origin) {
-			var zoom = this._getZoom() - this.settings.zoomStep;
-			return this._zoomTo(zoom, origin);
+		zoomOut: function(step, origin) {
+			if (!this.loading) {
+				var zoom = this.currentZoom - (step ? step : this.settings.zoomStep);
+				this._zoomTo(zoom, origin);
+			}
 		},
 
 		/**
 		 *
 		 */
-		zoomMin: function() {
-			this._zoomTo(this.settings.minZoom);
+		zoomMin: function(origin) {
+			if (!this.loading) {
+				this._zoomTo(this.settings.minZoom, origin);
+			}
 		},
 
 		/**
 		 *
 		 */
-		zoomMax: function() {
-			this._zoomTo(this.settings.maxZoom);
+		zoomMax: function(origin) {
+			if (!this.loading) {
+				this._zoomTo(this.settings.maxZoom, origin);
+			}
 		},
 
 		/**
 		 *
 		 */
-		zoomToggle: function() {
-			var imageSize = this._imageSize();
-			if (imageSize.width == this.sizeConstraints.width.max) {
-				this._resetSize();
-				this._center();
+		zoomToggle: function(origin) {
+			if (!this.loading) {
+				if (this.isMaxZoomed()) {
+					this._resetZoom();
+					this._center();
+				}
+				else {
+					this._zoomTo(this.settings.maxZoom, origin);
+				}
+			}
+		},
+
+		/**
+		 *
+		 */
+		isMinZoomed: function() {
+			if (this.loading) {
+				return undefined;
 			}
 			else {
-				this._zoomTo(this.settings.maxZoom);
+				var minZoom = this._parseZoom(this.settings.minZoom);
+				if (typeof minZoom == 'number') {
+					return Math.abs(this.currentZoom - minZoom) < 0.00001;
+				}
+				else {
+					return false;
+				}
+			}
+		},
+
+		/**
+		 *
+		 */
+		isMaxZoomed: function() {
+			if (this.loading) {
+				return undefined;
+			}
+			else {
+				var maxZoom = this._parseZoom(this.settings.maxZoom);
+				if (typeof maxZoom == 'number') {
+					return Math.abs(maxZoom - this.currentZoom) < 0.00001;
+				}
+				else {
+					return false;
+				}
 			}
 		},
 
@@ -943,7 +1120,7 @@
 				// Return copy of current settings
 				return $.extend({}, this.settings);
 			}
-			else {
+			else if (!this.loading) {
 				var options;
 				if (typeof key == 'string') {
 					if (arguments.length === 1) {
@@ -956,7 +1133,6 @@
 					options = key;
 				}
 				this._setOptions(options);
-				this._setCssClasses();
 			}
 		},
 
@@ -967,48 +1143,93 @@
 			for (key in options) {
 				var value = options[key];
 
-				// Disable/modify plugin before we apply new settings
-				if ($.inArray(key, ['disableHammerPlugin', 'disableMouseWheelPlugin']) > -1) {
-					this._unbind();
+				switch (key) {
+					case 'hammerPluginEnabled':
+					case 'mouseWheelPluginEnabled':
+						this._unbind();
+						break;
+
+					case 'disabled':
+					case 'dragEnabled':
+					case 'zoomEnabled':
+						if (this.hammerManager) {
+							this.hammerManager.stop(true);
+						}
+						this._isDragging(false);
+						this._isPinching(false);
+						break;
+
+					case 'cssWrapperClass':
+						this.$wrapper.removeClass(this.settings.cssWrapperClass);
+						break;
+
+					case 'hardwareAcceleration':
+						// Remove css style
+						this.$image.css({
+							'-webkit-transform': '',
+							'-moz-transform': '',
+							'-ms-transform': '',
+							'-o-transform': '',
+							'transform': '',
+							'width': '',
+							'height': '',
+							'marginLeft': '',
+							'marginTop': ''
+						});
+						break;
 				}
-				else if ($.inArray(key, ['disabled', 'disablePan', 'disableZoom']) > -1 && this.hammerManager) {
-					this.hammerManager.stop(true);
-				}
-				else if (key == 'cssWrapperClass' && typeof this.settings.cssWrapperClass == 'string') {
-					this.$wrapper.removeClass(this.settings.cssWrapperClass);
-				}
+
 
 				// Apply option
 				this.settings[key] = value;
 
-				// Disable/modify plugin before we apply new settings
-				if ($.inArray(key, ['disableHammerPlugin', 'disableMouseWheelPlugin']) > -1) {
-					this._bind();
-				}
-				else if ($.inArray(key, ['disabled', 'disablePan', 'disableZoom']) > -1 && this.hammerManager) {
-					this.hammerManager.stop(true);
-				}
-				else if (key == 'cssWrapperClass' && typeof this.settings.cssWrapperClass == 'string') {
-					this.$wrapper.addClass(this.settings.cssWrapperClass);
-				}
-				else if ($.inArray(key, ['minZoom', 'maxZoom']) > -1) {
-					// Update constraints and set current zoom again to apply new constraints
-					this._setConstraints();
-					var zoom = this._getZoom();
-					this._zoomTo(zoom);
-				}
-				else if (key == 'autoCenter') {
-					switch (value) {
-						case true:
-						case 'both':
-							this._center();
-							break;
 
-						case 'horizontal':
-						case 'vertical':
-							this._center(value);
-							break;
-					}
+				// Enable/modify plugin
+				switch (key) {
+					case 'hammerPluginEnabled':
+					case 'mouseWheelPluginEnabled':
+						this._bind();
+						break;
+
+					case 'hardwareAcceleration':
+						this._updateSizeAndPosition();
+						break;
+
+					case 'minZoom':
+					case 'maxZoom':
+						// Update current zoom, so min and max zoom are considered
+						this._zoomTo(this.currentZoom);
+						break;
+
+					case 'autoCenter':
+						switch (value) {
+							case true:
+							case 'both':
+								this._center();
+								break;
+
+							case 'x':
+							case 'h':
+							case 'horizontal':
+							case 'y':
+							case 'v':
+							case 'vertical':
+								this._center(value);
+								break;
+						}
+						break;
+				}
+
+				if ($.inArray(key, [
+							'cssWrapperClass',
+							'hammerPluginEnabled',
+							'mouseWheelPluginEnabled',
+							'disabled',
+							'dragEnabled',
+							'zoomEnabled'
+					]) > -1) {
+
+					this._updateCssClasses();
 				}
 			}
 		},
@@ -1017,17 +1238,19 @@
 		 *
 		 */
 		destroy: function() {
-			this._trigger('destroy');
+			if (!this.loading) {
+				this._trigger('destroy');
 
-			this._unbind();
-			this._removeWrapper();
+				this._unbind();
+				this._removeWrapper();
 
-			this._isPanning(false);
-			this._isPinching(false);
+				this._isDragging(false);
+				this._isPinching(false);
 
-			this.$target.removeData(datakey);
-			if (this.mode == 'container') {
-				this.$image.removeData(datakey);
+				this.$target.removeData(datakey);
+				if (this.mode == 'container') {
+					this.$image.removeData(datakey);
+				}
 			}
 		}
 	};
@@ -1067,24 +1290,31 @@
 	 */
 	ApImageZoom.defaultSettings = {
 		imageUrl: undefined,
-		loadingAnimation: undefined,	// Options: undefined, 'text', 'throbber', 'image'
+		loadingAnimation: undefined,			// Options: undefined, 'text', 'throbber', 'image'
 		loadingAnimationData: undefined,
-		loadingAnimationFadeOutDuration: 200,
+		loadingAnimationFadeOutDuration: 200,	// Options: value (float), false/null/undefined
 		cssWrapperClass: undefined,
-		initialZoom: 'auto',			// Options: value (float), 'none', 'auto', 'min', 'max'
-		minZoom: 0.2,					// = 20%
-		maxZoom: 1.0,					// = 100%
-		zoomStep: 0.1,					// = 10% steps
-		autoCenter : true,				// Options: true, 'both', 'horizontal', 'vertical'
+		initialZoom: 'auto',					// Options: value (float), 'none', 'auto', 'contain', 'cover', 'min', 'max'
+		minZoom: 0.2,							// Options: value (float), 'contain', 'cover'
+		maxZoom: 1.0,							// Options: value (float), 'contain', 'cover'
+		zoomStep: 0.07,							// = 10% steps
+		autoCenter : true,						// Options: true, 'both', 'x', 'h', horizontal', 'y', 'v', vertical'
 
-		disableHammerPlugin: false,
-		disableMouseWheelPlugin: false,
+		hammerPluginEnabled: true,
+		mouseWheelPluginEnabled: true,
+		hardwareAcceleration: true,
 
 		disabled: false,
-		disablePan: false,
-		disableZoom: false,
+		dragEnabled: true,
+		zoomEnabled: true,
 
-		doubleTap: undefined			// Options: 'open', 'zoomMax', 'zoomToggle'
+		// Options: function(), 'open', 'zoomIn', 'zoomOut', 'zoomMin', 'zoomMax', 'zoomToggle', 'reset', 'center'
+		// swipeTop: ,
+		// swipeRight: ,
+		// swipeBottom: ,
+		// swipeLeft: ,
+		// click: ,
+		doubleClick: 'zoomToggle'
 	};
 
 }(jQuery));
