@@ -13,6 +13,7 @@ _**This plugin and this readme file is still under development.**_
 
 # Core Features
 - Highly customizable plugin for showing images in fullscreen mode, in combination with [ap-image-zoom](https://github.com/armin-pfaeffle/ap-image-zoom) plugin.
+- Fallback to *pseudo fullscreen mode* if no real fullscreen mode is available (even then device says that fullscreen mode is available)
 - Predefined and completely customizable shortcuts
 - Individual background colors via `data-background-color`attribute, e.g. `<img src="..."  data-background-color="#ccf
 />`.
