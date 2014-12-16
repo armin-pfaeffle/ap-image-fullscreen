@@ -1,6 +1,6 @@
 ap-image-fullscreen
 ===================
-_**This plugin is still under development, even so this readme file.**_
+_**This plugin and this readme file is still under development.**_
 
 **ap-image-fullscreen** is a jQuery plugin for showing images in fullscreen mode, in combination with zoom functionality (see [ap-image-zoom](https://github.com/armin-pfaeffle/ap-image-zoom) plugin). If there is no fullscreen support you can use *pseudo fullscreen mode*, which only uses the browsers client area size.
 
@@ -19,7 +19,7 @@ _**This plugin is still under development, even so this readme file.**_
 - Lazy loading for minimizing traffic
 
 
-# Documenttation
+# Documentation
 Coming soon ;)
 
 

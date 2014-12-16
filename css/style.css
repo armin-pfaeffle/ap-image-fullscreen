@@ -25,7 +25,6 @@ body {
 	}
 
 	.controls-container header {
-		font-family: 'Roboto Condensed', sans-serif;
 		font-weight: 700;
 		font-size: 15pt;
 		background-color: #9b00ba;
@@ -35,7 +34,7 @@ body {
 		}
 
 	.controls-container .options {
-		padding: 40px 0 25px 0;
+		padding: 40px 0;
 		background-color: #f7f7f7;
 		border-top: 1px solid #f0f0f0;
 		border-bottom: 1px solid #fcfcfc;
@@ -56,6 +55,25 @@ body {
 		background-color: #9e1153;
 		background-color: #00A2C8;
 		}
+
+	.controls-container footer {
+		font-weight: 400;
+		font-size: 10pt;
+		text-align: center;
+		background-color: #fff;
+		padding: 15px 0;
+		}
+
+		.controls-container footer a {
+			color: #ccc;
+			text-decoration: none;
+			padding: 10px 17px;
+			}
+
+		.controls-container footer a:hover {
+			color: #777;
+			text-decoration: underline;
+			}
 
 
 .apifs-wrapper .apiz-loading-animation-image {
