@@ -2,11 +2,13 @@ html.apifs-pseudo-fullscreen,
 html.apifs-pseudo-fullscreen > body {
 	width: 100%;
 	height: 100%;
+	overflow: hidden;
 	}
 
 .apifs-container {
+	position: absolute;
 	visibility: hidden;
-	z-index: 9999;
+	z-index: -1;
 	left: 0;
 	top: 0;
 	width: 100%;
@@ -26,13 +28,16 @@ html.apifs-pseudo-fullscreen > body {
 
 .apifs-screenfull .apifs-container {
 	visibility: visible;
+	display: block;
 	width: 0;
 	height: 0;
 	}
 
 .apifs-pseudo-fullscreen .apifs-container {
 	visibility: visible;
-	position: fixed;
+	display: block;
+	position: absolute;
+	z-index: 9999;
 	}
 
 	.apifs-container .apifs-fullscreen-element {
