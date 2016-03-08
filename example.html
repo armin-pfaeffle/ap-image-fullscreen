@@ -14,12 +14,12 @@
 		<link rel="stylesheet" href="lib/css/ap-image-fullscreen-themes.css" type="text/css" media="screen" />
 
 		 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-		 
+
 		 <script src="vendor/ap-image-zoom/vendor/hammer.js/hammer.min.js"></script>
 		 <script src="vendor/ap-image-zoom/vendor/jquery.mousewheel/jquery.mousewheel.min.js"></script>
 		 <script src="vendor/ap-image-zoom/lib/js/ap-image-zoom.min.js"></script>
 		 <script src="vendor/screenfull.js/dist/screenfull.min.js"></script>
-		 
+
 		 <script src="lib/js/ap-image-fullscreen.js"></script>
 		<!--[if lt IE 9]><script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
 	</head>
@@ -63,7 +63,9 @@
 					imageZoom: {
 						loadingAnimation: 'image',
 						loadingAnimationData: 'lib/images/hourglass_b.png'
-					}
+					},
+					// defaultTheme: 'dark',			// Themes: 'gray', 'contrast', 'light', 'dark''
+					defaultTheme: 'dark'
 					/*
 					onPseudoFullscreenFallback: function() {
 						alert('pseudoFullscreenFallback');
